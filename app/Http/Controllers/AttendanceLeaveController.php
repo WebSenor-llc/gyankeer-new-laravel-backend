@@ -408,17 +408,19 @@ class AttendanceLeaveController extends Controller
     }
 
     /**
+     * Workers-only Quick Counts — auto-filters to employee_type='WK' and adds
+     * a Contractor (Salary Group) dropdown. Workers are linked to a contractor
+     * via salary_group_id (e.g. "Contractor - Lehar Singh Kitawat").
+     */
+    public function countsWorkers(Request $req)
+    {
+        $req->merge(['emp_type' => 'WK', '_workers_only' => 1]);
+        return $this->counts($req);
+    }
+
+    /**
      * SUGAM HR-style "Quick Counts" entry — one row per employee, count-only fields.
      * No per-row date pickers. Fastest possible mode for typical monthly entry.
-     *
-     * Columns: P (Present), W (W/Off), CL, SL, PL, A (Absent), HD (Half-Day), OT (hours)
-     * On save, system auto-distributes:
-     *   - W → Sundays first, then Saturdays
-     *   - CL/SL/PL → consecutive days starting from day 1 (after W)
-     *   - A → after leaves
-     *   - HD → marked as Half Day at the end
-     *   - P → fills remainder
-     *   - OT hours stored separately on each Present day (split evenly)
      */
     public function counts(Request $req)
     {
@@ -435,7 +437,7 @@ class AttendanceLeaveController extends Controller
             if ($dt->dayOfWeek === 6) $saturdays++;
         }
 
-        $empQ = Employee::with('department')->where('active_flag', true);
+        $empQ = Employee::with(['department','salary_group'])->where('active_flag', true);
         if ($cid) $empQ->where('company_id', $cid);
         if ($req->filled('q')) {
             $q = $req->q;
@@ -443,8 +445,22 @@ class AttendanceLeaveController extends Controller
                 $w->where('full_name', 'like', "%$q%")->orWhere('emp_id', 'like', "%$q%");
             });
         }
-        if ($req->filled('dept_id')) $empQ->where('dept_id', $req->dept_id);
+        if ($req->filled('dept_id'))         $empQ->where('dept_id', $req->dept_id);
+        if ($req->filled('emp_type'))        $empQ->where('employee_type', $req->emp_type);
+        if ($req->filled('salary_group_id')) $empQ->where('salary_group_id', $req->salary_group_id);
         $employees = $empQ->orderBy('emp_id')->paginate(100)->appends($req->query());
+
+        // Contractor list for the workers-only page (salary groups whose name
+        // starts with "Contractor"). Scoped to the active company.
+        $workersOnly = $req->boolean('_workers_only');
+        $contractors = $workersOnly
+            ? \App\Models\SalaryGroup::when($cid, fn($q) => $q->where('company_id', $cid))
+                ->where(function ($q) {
+                    $q->where('salary_group_name', 'like', 'Contractor%')
+                      ->orWhere('salary_group_name', 'like', '%Contarctor%');     // tolerate seeded typo
+                })
+                ->orderBy('salary_group_name')->get()
+            : collect();
 
         $empIds = $employees->pluck('emp_id')->all();
 
@@ -528,7 +544,7 @@ class AttendanceLeaveController extends Controller
 
         return view('attendance.counts', compact(
             'employees', 'existing', 'year', 'month', 'totalDays',
-            'sundays', 'saturdays', 'departments'
+            'sundays', 'saturdays', 'departments', 'workersOnly', 'contractors'
         ));
     }
 

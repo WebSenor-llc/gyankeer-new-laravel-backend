@@ -155,24 +155,38 @@ class SalaryStructureController extends Controller
             'current_gross'           => $gross,
         ];
 
-        // Only set the new flag/numeric columns if the migration has been run
+        // The new flag/numeric columns require migration 2026_05_04_000007.
+        // If they don't exist, warn the user instead of silently dropping data.
         $newCols = ['pf_applicable_flag','fpf_applicable_flag','esi_applicable_flag','co_applicable_flag',
             'overtime_applicable_flag','overtime_rate','lwf_apply_flag','ltc_entitled_flag','group_gratuity_code',
             'payment_mode','auto_calc_flag','da_pct','hra_pct','conv_pct','medical_pct','education_pct',
             'special_house_rent','site_allowance','sp_conv_petrol','other_allowance','deputation_allowance',
             'food_allowance','city_allowance','voucher_cash_allow','kra_amount','hard_duty_allow','education_allow'];
+
+        $boolCols = ['pf_applicable_flag','fpf_applicable_flag','esi_applicable_flag','co_applicable_flag',
+            'overtime_applicable_flag','lwf_apply_flag','ltc_entitled_flag','auto_calc_flag'];
+
+        $missingCols = [];
         foreach ($newCols as $c) {
             if (\Illuminate\Support\Facades\Schema::hasColumn('employees', $c)) {
-                if (in_array($c, ['pf_applicable_flag','fpf_applicable_flag','esi_applicable_flag','co_applicable_flag',
-                                  'overtime_applicable_flag','lwf_apply_flag','ltc_entitled_flag','auto_calc_flag'])) {
-                    $payload[$c] = $req->boolean($c);
+                if (in_array($c, $boolCols)) {
+                    // Force-cast to int 0/1 so MySQL stores it cleanly even if the
+                    // column is decimal/varchar instead of tinyint
+                    $payload[$c] = $req->boolean($c) ? 1 : 0;
                 } else {
                     $payload[$c] = $req->input($c);
                 }
+            } else {
+                $missingCols[] = $c;
             }
         }
 
         $emp->update($payload);
+
+        if (!empty($missingCols) && in_array('pf_applicable_flag', $missingCols)) {
+            return redirect()->route('manage-salary.config', $emp->emp_id)
+                ->with('status', '⚠️ Saved partial — but the salary-config columns (pf_applicable_flag, esi_applicable_flag, …) DO NOT EXIST in the employees table yet. Run: php artisan migrate. The PF/ESI checkbox states will not persist until you do.');
+        }
 
         return redirect()->route('manage-salary.config', $emp->emp_id)
             ->with('status', "Saved salary configuration for {$emp->full_name}. Gross = ₹" . number_format($gross, 2));

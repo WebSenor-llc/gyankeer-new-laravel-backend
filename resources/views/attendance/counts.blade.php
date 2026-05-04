@@ -1,16 +1,33 @@
 @extends('layouts.app')
-@section('title', 'Attendance — Quick Counts')
+@section('title', ($workersOnly ?? false) ? 'Workers Attendance — by Contractor' : 'Attendance — Quick Counts')
 
 @section('content')
+@php $workersOnly = $workersOnly ?? false; $contractors = $contractors ?? collect(); @endphp
 <div class="p-4">
-    <div class="text-xs text-slate-500 mb-2">Attendance & Leave / <span class="text-slate-900 font-semibold">Quick Counts (SUGAM-style)</span></div>
+    <div class="text-xs text-slate-500 mb-2">
+        Attendance & Leave /
+        <span class="text-slate-900 font-semibold">
+            @if($workersOnly) Workers Attendance (by Contractor)
+            @else Quick Counts (SUGAM-style) @endif
+        </span>
+    </div>
 
     <div class="flex items-center justify-between mb-3">
-        <h1 class="text-xl font-bold">Quick Counts — {{ \DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}</h1>
+        <h1 class="text-xl font-bold">
+            @if($workersOnly)
+                👷 Workers Attendance — {{ \DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}
+            @else
+                Quick Counts — {{ \DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}
+            @endif
+        </h1>
         <div class="flex gap-2">
+            @if($workersOnly)
+                <a href="{{ route('attendance.counts', ['year'=>$year,'month'=>$month]) }}" class="tb-btn">All Employees View</a>
+            @else
+                <a href="{{ route('attendance.counts-workers', ['year'=>$year,'month'=>$month]) }}" class="tb-btn primary" style="background:#0EA5E9;border-color:#0284C7">👷 Workers Only (by Contractor)</a>
+            @endif
             <a href="{{ route('attendance.summary', ['year'=>$year,'month'=>$month]) }}" class="tb-btn">Summary (P/W/L by date)</a>
             <a href="{{ route('attendance.grid',    ['year'=>$year,'month'=>$month]) }}" class="tb-btn">Day-by-day Grid</a>
-            <a href="{{ route('attendance.daily') }}" class="tb-btn">Daily View</a>
         </div>
     </div>
 
@@ -28,16 +45,34 @@
                     <option value="{{ $n }}" @selected($n == $month)>{{ $lbl }}</option>
                 @endforeach
             </select></div>
-        <div><label class="block text-xs font-semibold text-slate-600 mb-1">Department</label>
-            <select name="dept_id" class="border border-[var(--line)] rounded p-2 text-sm" style="min-width:160px">
-                <option value="">All</option>
-                @foreach($departments as $d)
-                    <option value="{{ $d->dept_id }}" @selected(request('dept_id') == $d->dept_id)>{{ $d->dept_name }}</option>
-                @endforeach
-            </select></div>
+
+        @if($workersOnly)
+            {{-- Contractor (Salary Group) — workers only --}}
+            <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Contractor</label>
+                <select name="salary_group_id" class="border border-[var(--line)] rounded p-2 text-sm" style="min-width:240px">
+                    <option value="">— All Contractors —</option>
+                    @foreach($contractors as $c)
+                        <option value="{{ $c->salary_group_id }}" @selected(request('salary_group_id') == $c->salary_group_id)>{{ $c->salary_group_name }}</option>
+                    @endforeach
+                </select>
+            </div>
+        @else
+            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Department</label>
+                <select name="dept_id" class="border border-[var(--line)] rounded p-2 text-sm" style="min-width:160px">
+                    <option value="">All</option>
+                    @foreach($departments as $d)
+                        <option value="{{ $d->dept_id }}" @selected(request('dept_id') == $d->dept_id)>{{ $d->dept_name }}</option>
+                    @endforeach
+                </select></div>
+        @endif
+
         <div class="flex-1"><label class="block text-xs font-semibold text-slate-600 mb-1">Search</label>
             <input type="search" name="q" value="{{ request('q') }}" placeholder="Emp ID or name…" class="border border-[var(--line)] rounded p-2 text-sm w-full"/></div>
         <button type="submit" class="tb-btn primary">Apply</button>
+        @if($workersOnly && (request('salary_group_id') || request('q')))
+            <a href="{{ route('attendance.counts-workers', ['year'=>$year,'month'=>$month]) }}" class="tb-btn">Clear</a>
+        @endif
     </form>
 
     {{-- Header info card --}}
@@ -81,7 +116,7 @@
                     <tr style="background:#F1F5F9">
                         <th style="position:sticky;left:0;background:#F1F5F9;z-index:2;min-width:60px">Emp ID</th>
                         <th style="position:sticky;left:60px;background:#F1F5F9;z-index:2;min-width:170px">Name</th>
-                        <th style="min-width:100px">Dept</th>
+                        <th style="min-width:140px">{{ $workersOnly ? 'Contractor' : 'Dept' }}</th>
                         <th style="background:#D1FAE5;min-width:50px">P</th>
                         <th style="background:#E2E8F0;min-width:50px">W</th>
                         <th style="background:#FEF3C7;min-width:50px">CL</th>
@@ -99,7 +134,13 @@
                         <tr data-empid="{{ $e->emp_id }}">
                             <td style="position:sticky;left:0;background:#fff;z-index:1;font-weight:600">{{ $e->emp_id }}</td>
                             <td style="position:sticky;left:60px;background:#fff;z-index:1;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis">{{ $e->full_name }}</td>
-                            <td style="font-size:10px;color:#64748B">{{ $e->department->dept_name ?? '—' }}</td>
+                            <td style="font-size:10px;color:#64748B">
+                                @if($workersOnly)
+                                    {{ $e->salary_group->salary_group_name ?? '—' }}
+                                @else
+                                    {{ $e->department->dept_name ?? '—' }}
+                                @endif
+                            </td>
                             <td style="background:#D1FAE5;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][p]"  value="{{ $c['p']  ?: '' }}" class="cnt cnt-p  w-full border border-[var(--line)] rounded p-1 text-xs text-center font-bold" oninput="recalcRow(this)"></td>
                             <td style="background:#E2E8F0;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][w]"  value="{{ $c['w']  ?: '' }}" class="cnt cnt-w  w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
                             <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][cl]" value="{{ $c['cl'] ?: '' }}" class="cnt cnt-cl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>

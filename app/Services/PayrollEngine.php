@@ -273,12 +273,29 @@ class PayrollEngine
             'spl'     => (float) $spl,
             'gross'   => $gross,
         ];
-        $pf  = $this->pf->compute($components);
-        $esi = $this->esi->compute($components);
+        // ── Per-employee statutory toggles (Manage Salary > Config flags) ──
+        // Default behavior when flags are not set / column missing: applicable.
+        // When HR explicitly unchecks PF/ESI/LWF on /payroll/manage-salary/{id}/config,
+        // the corresponding deduction is set to ₹0 here.
+        $pfApplicable  = !\Illuminate\Support\Facades\Schema::hasColumn('employees', 'pf_applicable_flag')
+                         || ($e->pf_applicable_flag ?? true) == true;
+        $esiApplicable = !\Illuminate\Support\Facades\Schema::hasColumn('employees', 'esi_applicable_flag')
+                         || ($e->esi_applicable_flag ?? true) == true;
+        $lwfApplicable = !\Illuminate\Support\Facades\Schema::hasColumn('employees', 'lwf_apply_flag')
+                         || ($e->lwf_apply_flag ?? true) == true;
+
+        $pf = $pfApplicable
+            ? $this->pf->compute($components)
+            : ['wage' => 0, 'employee' => 0, 'employer' => 0, 'eps' => 0, 'edli' => 0, 'admin' => 0];
+        $esi = $esiApplicable
+            ? $this->esi->compute($components)
+            : ['eligible' => false, 'wage' => 0, 'employee' => 0, 'employer' => 0];
         // Default to RJ (Rajasthan — no PT, no LWF) when the employee record
         // doesn't specify a state. Override per-employee via the edit form.
         $pt  = $this->pt->compute($gross, $e->pt_state ?? 'RJ', $run->period_month);
-        $lwf = $this->lwf->compute($e->lwf_state ?? 'RJ', $run->period_month);
+        $lwf = $lwfApplicable
+            ? $this->lwf->compute($e->lwf_state ?? 'RJ', $run->period_month)
+            : ['employee' => 0, 'employer' => 0];
         // TDS — auto-computation DISABLED per HR policy. Defaults to 0 and is
         // only applied when manually entered via /payroll/salary-deductions/create
         // (handled in the manual_deductions block below).

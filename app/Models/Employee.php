@@ -48,6 +48,17 @@ class Employee extends Model
         'updated_at' => 'datetime',
         'last_login_at' => 'datetime',
         'active_flag' => 'boolean',
+        // SUGAM-style salary configuration flags (see /payroll/manage-salary/{id}/config)
+        'pf_applicable_flag'        => 'boolean',
+        'fpf_applicable_flag'       => 'boolean',
+        'esi_applicable_flag'       => 'boolean',
+        'co_applicable_flag'        => 'boolean',
+        'overtime_applicable_flag'  => 'boolean',
+        'lwf_apply_flag'            => 'boolean',
+        'ltc_entitled_flag'         => 'boolean',
+        'auto_calc_flag'            => 'boolean',
+        'notice_served_flag'        => 'boolean',
+        'date_of_relieving'         => 'date',
     ];
 
     public function company(): BelongsTo

@@ -166,8 +166,9 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/grid',        'bulkGridSave') ->name('grid.save');
         Route::get ('/summary',     'summaryEntry') ->name('summary');
         Route::post('/summary',     'summaryEntrySave')->name('summary.save');
-        Route::get ('/counts',      'counts')       ->name('counts');
-        Route::post('/counts',      'countsSave')   ->name('counts.save');
+        Route::get ('/counts',          'counts')        ->name('counts');
+        Route::post('/counts',          'countsSave')    ->name('counts.save');
+        Route::get ('/counts-workers',  'countsWorkers') ->name('counts-workers');
         Route::post('/set-reporting','setReportingSave')->name('set-reporting.save');
         Route::get ('/upload',      'uploadForm')   ->name('upload');
         Route::post('/upload',      'upload')       ->name('upload.post');

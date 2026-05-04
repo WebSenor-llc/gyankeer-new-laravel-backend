@@ -111,6 +111,7 @@
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('attendance.daily') }}"         class="block py-1.5 hover:text-[var(--brand)]">Daily Attendance</a>
                     <a href="{{ route('attendance.counts') }}"        class="block py-1.5 hover:text-[var(--brand)] font-semibold text-[var(--brand)]">⚡ Quick Counts (SUGAM)</a>
+                    <a href="{{ route('attendance.counts-workers') }}" class="block py-1.5 hover:text-[var(--brand)]">👷 Workers (by Contractor)</a>
                     <a href="{{ route('attendance.grid') }}"          class="block py-1.5 hover:text-[var(--brand)]">Bulk Attendance Grid</a>
                     <a href="{{ route('attendance.summary') }}"       class="block py-1.5 hover:text-[var(--brand)]">Summary Entry (P/W/L)</a>
                     <a href="{{ route('attendance.manual') }}"        class="block py-1.5 hover:text-[var(--brand)]">Manual Attendance</a>
