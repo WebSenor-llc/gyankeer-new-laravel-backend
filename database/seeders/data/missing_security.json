@@ -1,0 +1,40 @@
+[
+  {
+    "emp_id": 13158,
+    "name": "Vikram Singh",
+    "father": "Pratap Singh",
+    "doj": "2026-04-04 00:00:00",
+    "type": "SB",
+    "group": "GTPPL -STAFF SECURITY",
+    "g25": 10500,
+    "hike": 0,
+    "newm": 10500,
+    "arev": 126000,
+    "pBasic": 5250,
+    "pDA": 525,
+    "pHRA": 2625,
+    "pConv": 420,
+    "pMed": 262.5,
+    "pEdu": 262.5,
+    "pSphr": 1155
+  },
+  {
+    "emp_id": 13159,
+    "name": "Pankaj Shrimali",
+    "father": "Giriraj Shrimali",
+    "doj": "2026-04-01 00:00:00",
+    "type": "SB",
+    "group": "GTPPL -STAFF SECURITY",
+    "g25": 10500,
+    "hike": 0,
+    "newm": 10500,
+    "arev": 126000,
+    "pBasic": 5250,
+    "pDA": 525,
+    "pHRA": 2625,
+    "pConv": 420,
+    "pMed": 262.5,
+    "pEdu": 262.5,
+    "pSphr": 1155
+  }
+]
