@@ -115,7 +115,7 @@
                 <thead>
                     <tr style="background:#F1F5F9">
                         <th style="position:sticky;left:0;background:#F1F5F9;z-index:2;min-width:60px">Emp ID</th>
-                        <th style="position:sticky;left:60px;background:#F1F5F9;z-index:2;min-width:170px">Name</th>
+                        <th style="position:sticky;left:60px;background:#F1F5F9;z-index:2;min-width:200px">Name<br><span class="font-normal text-[9px] text-slate-500">/ Father</span></th>
                         <th style="min-width:140px">{{ $workersOnly ? 'Contractor' : 'Dept' }}</th>
                         <th style="background:#D1FAE5;min-width:50px">P</th>
                         <th style="background:#E2E8F0;min-width:50px">W</th>
@@ -124,16 +124,45 @@
                         <th style="background:#FEF3C7;min-width:50px">PL</th>
                         <th style="background:#FEE2E2;min-width:50px">A</th>
                         <th style="background:#FFEDD5;min-width:50px">HD</th>
+                        <th style="background:#E0E7FF;min-width:50px" title="Paid Holiday (Republic Day, Diwali, etc.) — paid like Present">PH</th>
                         <th style="background:#DBEAFE;min-width:60px">OT (h)</th>
                         <th style="min-width:60px;background:#F8FAFC">Total<br><span class="font-normal text-[10px]">(={{ $totalDays }})</span></th>
                     </tr>
                 </thead>
                 <tbody>
+                    @php $lastGroupId = null; @endphp
                     @forelse($employees as $e)
                         @php $c = $existing[$e->emp_id] ?? ['p'=>0,'w'=>0,'cl'=>0,'sl'=>0,'pl'=>0,'a'=>0,'hd'=>0,'ot'=>0]; @endphp
+
+                        {{-- Contractor header row when group changes (workers view only) --}}
+                        @if($workersOnly && $e->salary_group_id !== $lastGroupId)
+                            @php $lastGroupId = $e->salary_group_id; @endphp
+                            <tr style="background:#FEF3C7;border-top:2px solid #F59E0B">
+                                <td colspan="13" style="padding:6px 12px;font-weight:bold;color:#92400E;font-size:12px">
+                                    👷 {{ $e->salary_group->salary_group_name ?? 'No Contractor' }}
+                                    <span style="font-weight:normal;font-size:10px;color:#78350F;margin-left:8px">
+                                        — {{ $employees->where('salary_group_id', $e->salary_group_id)->count() }} worker(s)
+                                    </span>
+                                </td>
+                            </tr>
+                        @endif
+
                         <tr data-empid="{{ $e->emp_id }}">
-                            <td style="position:sticky;left:0;background:#fff;z-index:1;font-weight:600">{{ $e->emp_id }}</td>
-                            <td style="position:sticky;left:60px;background:#fff;z-index:1;white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis">{{ $e->full_name }}</td>
+                            <td style="position:sticky;left:0;background:#fff;z-index:1;font-weight:600">
+                                {{ $e->emp_id }}
+                                @if($workersOnly)
+                                    <button type="button"
+                                            onclick="openMoveModal({{ $e->emp_id }}, '{{ addslashes($e->full_name) }}', {{ $e->salary_group_id ?: 0 }}, '{{ addslashes($e->salary_group->salary_group_name ?? '—') }}')"
+                                            title="Move to another contractor"
+                                            style="margin-left:4px;font-size:10px;padding:1px 5px;background:#F59E0B;color:#fff;border:none;border-radius:3px;cursor:pointer">↔</button>
+                                @endif
+                            </td>
+                            <td style="position:sticky;left:60px;background:#fff;z-index:1;white-space:nowrap;max-width:200px;overflow:hidden;text-overflow:ellipsis;line-height:1.3;padding:3px 6px">
+                                <div style="font-weight:600">{{ $e->full_name }}</div>
+                                @if($e->fathers_name)
+                                    <div style="font-size:9px;color:#64748B;font-weight:normal">s/o {{ $e->fathers_name }}</div>
+                                @endif
+                            </td>
                             <td style="font-size:10px;color:#64748B">
                                 @if($workersOnly)
                                     {{ $e->salary_group->salary_group_name ?? '—' }}
@@ -148,11 +177,12 @@
                             <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][pl]" value="{{ $c['pl'] ?: '' }}" class="cnt cnt-pl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
                             <td style="background:#FEE2E2;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][a]"  value="{{ $c['a']  ?: '' }}" class="cnt cnt-a  w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
                             <td style="background:#FFEDD5;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][hd]" value="{{ $c['hd'] ?: '' }}" class="cnt cnt-hd w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
+                            <td style="background:#E0E7FF;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][ph]" value="{{ ($c['ph'] ?? 0) ?: '' }}" class="cnt cnt-ph w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
                             <td style="background:#DBEAFE;padding:1px"><input type="number" min="0" max="744" step="0.5" name="row[{{ $e->emp_id }}][ot]" value="{{ $c['ot'] ?: '' }}" class="cnt-ot w-full border border-[var(--line)] rounded p-1 text-xs text-center"></td>
                             <td class="row-total text-center font-bold" style="background:#F8FAFC">0</td>
                         </tr>
                     @empty
-                        <tr><td colspan="12" class="text-center py-6 text-slate-500">No employees found.</td></tr>
+                        <tr><td colspan="13" class="text-center py-6 text-slate-500">No employees found.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -170,6 +200,62 @@
         </div>
     </form>
 </div>
+
+{{-- Move-Worker modal — appears only on workers view --}}
+@if($workersOnly && $contractors->isNotEmpty())
+<div id="moveModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+    <form method="POST" action="{{ route('attendance.move-worker') }}"
+          style="background:#fff;padding:24px;border-radius:8px;max-width:520px;width:92%;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
+        @csrf
+        <input type="hidden" name="emp_id" id="moveEmpId">
+
+        <div class="flex items-center gap-3 mb-3">
+            <span style="font-size:28px">↔</span>
+            <div>
+                <h2 class="text-lg font-bold text-slate-800">Move Worker to Another Contractor</h2>
+                <p class="text-xs text-slate-500" id="moveEmpInfo">—</p>
+            </div>
+        </div>
+
+        <div class="rounded-lg bg-slate-50 border border-[var(--line)] p-3 mb-3 text-sm">
+            <div class="text-xs text-slate-500 mb-1">Current Contractor :</div>
+            <div class="font-semibold text-slate-700" id="moveCurrentGroup">—</div>
+        </div>
+
+        <label class="block text-xs font-semibold text-slate-700 mb-1">New Contractor :</label>
+        <select name="new_salary_group_id" id="moveNewGroupId" required class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm mb-4">
+            <option value="">— Select new contractor —</option>
+            @foreach($contractors as $c)
+                <option value="{{ $c->salary_group_id }}">[{{ $c->salary_group_id }}] {{ $c->salary_group_name }}</option>
+            @endforeach
+        </select>
+
+        <p class="text-[11px] text-slate-500 mb-4">
+            ✅ The worker is moved immediately. Their attendance, manual deductions, and OT entries are preserved.
+            Future payslips will use the new contractor.
+        </p>
+
+        <div class="flex justify-end gap-2">
+            <button type="button" onclick="document.getElementById('moveModal').style.display='none'" class="tb-btn">Cancel</button>
+            <button type="submit" class="tb-btn primary" style="background:#F59E0B;border-color:#D97706;color:#fff">↔ Move</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function openMoveModal(empId, fullName, currentGroupId, currentGroupName) {
+    document.getElementById('moveEmpId').value           = empId;
+    document.getElementById('moveEmpInfo').textContent   = `${empId} — ${fullName}`;
+    document.getElementById('moveCurrentGroup').textContent = `[${currentGroupId}] ${currentGroupName}`;
+    // Disable the current group in the dropdown (can't move to same place)
+    document.querySelectorAll('#moveNewGroupId option').forEach(opt => {
+        opt.disabled = (parseInt(opt.value) === parseInt(currentGroupId));
+    });
+    document.getElementById('moveNewGroupId').value = '';
+    document.getElementById('moveModal').style.display = 'flex';
+}
+</script>
+@endif
 
 <script>
 const TOTAL_DAYS = {{ $totalDays }};

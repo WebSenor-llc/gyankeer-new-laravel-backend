@@ -143,18 +143,27 @@ Route::middleware(['auth'])->group(function () {
 
     // ============== Statutory & Compliance (India) ==============
     Route::prefix('statutory')->name('statutory.')->controller(StatutoryController::class)->group(function () {
-        Route::get ('/pf-challan',           'pfChallan')   ->name('pf');
-        Route::post('/pf-challan/generate',  'generateEcr') ->name('pf.generate');
-        Route::get ('/esi-challan',          'esiChallan')  ->name('esi');
-        Route::get ('/pt',                   'pt')          ->name('pt');
-        Route::get ('/lwf',                  'lwf')         ->name('lwf');
-        Route::get ('/tds',                  'tds')         ->name('tds');
-        Route::get ('/form24q',              'form24q')     ->name('form24q');
-        Route::get ('/form16/{empId}',       'form16')      ->name('form16');
-        Route::get ('/bonus',                'bonus')       ->name('bonus');
-        Route::get ('/gratuity',             'gratuity')    ->name('gratuity');
-        Route::get ('/posh',                 'posh')        ->name('posh');
-        Route::get ('/calendar',             'calendar')    ->name('calendar');
+        Route::get ('/pf-challan',           'pfChallan')    ->name('pf');
+        Route::post('/pf-challan/generate',  'generateEcr')  ->name('pf.generate');
+        Route::get ('/pf-challan/pdf',       'pfChallanPdf') ->name('pf.pdf');
+        Route::get ('/esi-challan',          'esiChallan')   ->name('esi');
+        Route::post('/esi-challan/generate', 'generateEsi')  ->name('esi.generate');
+        Route::get ('/esi-challan/pdf',      'esiChallanPdf')->name('esi.pdf');
+        Route::get ('/pt',                   'pt')           ->name('pt');
+        Route::post('/pt/generate',          'generatePt')   ->name('pt.generate');
+        Route::get ('/pt/pdf',               'ptPdf')        ->name('pt.pdf');
+        Route::get ('/lwf',                  'lwf')          ->name('lwf');
+        Route::post('/lwf/generate',         'generateLwf')  ->name('lwf.generate');
+        Route::get ('/lwf/pdf',              'lwfPdf')       ->name('lwf.pdf');
+        Route::get ('/tds',                  'tds')          ->name('tds');
+        Route::post('/tds/generate',         'generateTds')  ->name('tds.generate');
+        Route::get ('/tds/pdf',              'tdsPdf')       ->name('tds.pdf');
+        Route::get ('/form24q',              'form24q')      ->name('form24q');
+        Route::get ('/form16/{empId}',       'form16')       ->name('form16');
+        Route::get ('/bonus',                'bonus')        ->name('bonus');
+        Route::get ('/gratuity',             'gratuity')     ->name('gratuity');
+        Route::get ('/posh',                 'posh')         ->name('posh');
+        Route::get ('/calendar',             'calendar')     ->name('calendar');
     });
 
     // ============== Attendance & Leave ==============
@@ -169,6 +178,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get ('/counts',          'counts')        ->name('counts');
         Route::post('/counts',          'countsSave')    ->name('counts.save');
         Route::get ('/counts-workers',  'countsWorkers') ->name('counts-workers');
+        Route::post('/move-worker',     'moveWorker')    ->name('move-worker');
         Route::post('/set-reporting','setReportingSave')->name('set-reporting.save');
         Route::get ('/upload',      'uploadForm')   ->name('upload');
         Route::post('/upload',      'upload')       ->name('upload.post');

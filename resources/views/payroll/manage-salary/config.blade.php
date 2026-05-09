@@ -39,7 +39,7 @@
                             <select id="periodPicker" class="border border-[var(--line)] rounded p-2 text-sm" style="min-width:160px">
                                 @foreach($payslipPeriods as $p)
                                     @php $monthName = \DateTime::createFromFormat('!m', $p->period_month)->format('F'); @endphp
-                                    <option value="{{ $p->period_year }}/{{ $p->period_month }}">{{ $monthName }} {{ $p->period_year }} — Net ₹{{ number_format((float)$p->net_pay, 2) }}</option>
+                                    <option value="{{ $p->period_year }}/{{ $p->period_month }}">{{ $monthName }} {{ $p->period_year }} — Net ₹{{ number_format((float)$p->net_pay, 0) }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -68,8 +68,8 @@
                                 @php $monthName = \DateTime::createFromFormat('!m', $p->period_month)->format('F'); @endphp
                                 <tr>
                                     <td>{{ $monthName }} {{ $p->period_year }}</td>
-                                    <td class="text-right">₹{{ number_format((float)$p->gross_earnings, 2) }}</td>
-                                    <td class="text-right text-green-700"><strong>₹{{ number_format((float)$p->net_pay, 2) }}</strong></td>
+                                    <td class="text-right">₹{{ number_format((float)$p->gross_earnings, 0) }}</td>
+                                    <td class="text-right text-green-700"><strong>₹{{ number_format((float)$p->net_pay, 0) }}</strong></td>
                                     <td>
                                         <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold
                                             @if($p->disbursement_status === 'Paid') bg-green-100 text-green-800

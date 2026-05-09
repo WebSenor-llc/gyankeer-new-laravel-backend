@@ -22,6 +22,7 @@ class AttendanceSummary extends Model
         'pl_count'   => 'decimal:2',
         'a_count'    => 'decimal:2',
         'hd_count'   => 'decimal:2',
+        'ph_count'   => 'decimal:2',
         'ot_hours'   => 'decimal:2',
         'total_days' => 'decimal:2',
     ];

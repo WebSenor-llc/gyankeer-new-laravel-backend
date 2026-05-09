@@ -18,8 +18,8 @@
 
     <div class="grid grid-cols-3 gap-3 mb-4">
         <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Employees</div><div class="text-lg font-bold">{{ $totals['count'] }}</div></div>
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Gross</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['gross'], 2) }}</div></div>
-        <div class="card p-3" style="background:#FEF2F2;border-color:#FCA5A5"><div class="text-[11px] text-red-700 uppercase font-semibold">Total Net Pay</div><div class="text-lg font-bold text-red-700">&#8377;{{ number_format($totals['net'], 2) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Gross</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['gross'], 0) }}</div></div>
+        <div class="card p-3" style="background:#FEF2F2;border-color:#FCA5A5"><div class="text-[11px] text-red-700 uppercase font-semibold">Total Net Pay</div><div class="text-lg font-bold text-red-700">&#8377;{{ number_format($totals['net'], 0) }}</div></div>
     </div>
 
     <div class="card overflow-x-auto">
@@ -29,17 +29,17 @@
                 @forelse($rows as $r)
                     <tr>
                         <td>{{ $r->emp_id }}</td>
-                        <td>&#8377;{{ number_format($r->basic, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->hra, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->da, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->spl_allow, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->bonus, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->gross_earnings, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->epf_emp ?? 0, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->esi_emp ?? 0, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->pt ?? 0, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->tds ?? 0, 2) }}</td>
-                        <td><strong>&#8377;{{ number_format($r->net_pay ?? 0, 2) }}</strong></td>
+                        <td>&#8377;{{ number_format($r->basic, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->hra, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->da, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->spl_allow, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->bonus, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->gross_earnings, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->epf_emp ?? 0, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->esi_emp ?? 0, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->pt ?? 0, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->tds ?? 0, 0) }}</td>
+                        <td><strong>&#8377;{{ number_format($r->net_pay ?? 0, 0) }}</strong></td>
                     </tr>
                 @empty
                     <tr><td colspan="12" class="text-center py-6 text-slate-500">No payslips for {{ \DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}.</td></tr>

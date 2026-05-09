@@ -38,7 +38,7 @@
                     <div><div class="text-[11px] text-slate-500 uppercase">Emp ID</div><div class="font-semibold">{{ $emp->emp_id }}</div></div>
                     <div><div class="text-[11px] text-slate-500 uppercase">3P Code</div><div class="font-semibold">{{ $emp->third_party_code ?? '—' }}</div></div>
                     <div><div class="text-[11px] text-slate-500 uppercase">Date of Joining</div><div class="font-semibold">{{ $emp->date_of_joining ? \Carbon\Carbon::parse($emp->date_of_joining)->format('d-M-Y') : '—' }}</div></div>
-                    <div><div class="text-[11px] text-slate-500 uppercase">Current Gross</div><div class="font-semibold">&#8377;{{ number_format($emp->current_gross ?? 0, 2) }}</div></div>
+                    <div><div class="text-[11px] text-slate-500 uppercase">Current Gross</div><div class="font-semibold">&#8377;{{ number_format($emp->current_gross ?? 0, 0) }}</div></div>
                 </div>
             </div>
             <div>
@@ -119,7 +119,7 @@
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">PT State</div><div>{{ $emp->pt_state ?? '—' }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">LWF State</div><div>{{ $emp->lwf_state ?? '—' }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Tax Regime</div><div>{{ $emp->tax_regime ?? 'New' }}</div></div>
-                        <div><div class="text-[11px] text-slate-500 uppercase mb-1">VPF Amount</div><div>&#8377;{{ number_format($emp->vpf_amount ?? 0, 2) }}</div></div>
+                        <div><div class="text-[11px] text-slate-500 uppercase mb-1">VPF Amount</div><div>&#8377;{{ number_format($emp->vpf_amount ?? 0, 0) }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Passport No</div><div>{{ $emp->passport_no ?? '—' }}</div></div>
                     </div>
                     @break
@@ -145,14 +145,14 @@
                         <div class="font-semibold">{{ $emp->salary_group->salary_group_name ?? '—' }}</div>
                     </div>
                     <table class="grid-tbl">
-                        <tr><th>Basic</th><td>&#8377;{{ number_format($emp->current_basic ?? 0, 2) }}</td></tr>
-                        <tr><th>HRA</th><td>&#8377;{{ number_format($emp->current_hra ?? 0, 2) }}</td></tr>
-                        <tr><th>DA</th><td>&#8377;{{ number_format($emp->current_da ?? 0, 2) }}</td></tr>
+                        <tr><th>Basic</th><td>&#8377;{{ number_format($emp->current_basic ?? 0, 0) }}</td></tr>
+                        <tr><th>HRA</th><td>&#8377;{{ number_format($emp->current_hra ?? 0, 0) }}</td></tr>
+                        <tr><th>DA</th><td>&#8377;{{ number_format($emp->current_da ?? 0, 0) }}</td></tr>
                         <tr><th>Conveyance</th><td>{{ $emp->current_conv ?? '—' }}</td></tr>
                         <tr><th>Medical</th><td>{{ $emp->current_med ?? '—' }}</td></tr>
-                        <tr><th>Special Allowance</th><td>&#8377;{{ number_format($emp->current_spl ?? 0, 2) }}</td></tr>
-                        <tr><th>Gross</th><td><strong>&#8377;{{ number_format($emp->current_gross ?? 0, 2) }}</strong></td></tr>
-                        <tr><th>CTC</th><td><strong style="color:var(--brand)">&#8377;{{ number_format($emp->current_ctc ?? 0, 2) }}</strong></td></tr>
+                        <tr><th>Special Allowance</th><td>&#8377;{{ number_format($emp->current_spl ?? 0, 0) }}</td></tr>
+                        <tr><th>Gross</th><td><strong>&#8377;{{ number_format($emp->current_gross ?? 0, 0) }}</strong></td></tr>
+                        <tr><th>CTC</th><td><strong style="color:var(--brand)">&#8377;{{ number_format($emp->current_ctc ?? 0, 0) }}</strong></td></tr>
                         <tr><th>Last Increment %</th><td>{{ $emp->last_increment_pct ?? '—' }}</td></tr>
                         <tr><th>Last Increment Date</th><td>{{ $emp->last_increment_date ? \Carbon\Carbon::parse($emp->last_increment_date)->format('d-M-Y') : '—' }}</td></tr>
                     </table>

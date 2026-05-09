@@ -47,6 +47,12 @@ class SalaryRunController extends Controller
                 ->where('active_flag', true)
                 ->where('company_id', $companyId)
                 ->where('salary_group_id', $salaryGroupId);
+            // For exports, optionally narrow to a specific subset (the
+            // user-checked employees on the Salary Generation page).
+            $selectedEmpIds = $req->input('selected_emp_ids', []);
+            if ($req->input('export') && is_array($selectedEmpIds) && !empty($selectedEmpIds)) {
+                $empQ->whereIn('emp_id', $selectedEmpIds);
+            }
             $employees = $empQ->orderBy('emp_id')->get();
             $previewLoaded = true;
         }

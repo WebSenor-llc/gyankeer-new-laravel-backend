@@ -25,9 +25,9 @@
                         <td>{{ $r->quarter ?? '—' }}</td>
                         <td>{{ $r->employee_name ?? '—' }}</td>
                         <td>{{ $r->deductee_pan ?? '—' }}</td>
-                        <td>&#8377;{{ number_format($r->total_gross_paid ?? 0, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->total_deduction ?? 0, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->total_tax_paid ?? 0, 2) }}</td>
+                        <td>&#8377;{{ number_format($r->total_gross_paid ?? 0, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->total_deduction ?? 0, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->total_tax_paid ?? 0, 0) }}</td>
                         <td>{{ $r->filing_date ?? '—' }}</td>
                         <td>{{ $r->filing_ack_no ?? '—' }}</td>
                         <td><span class="pill {{ ($r->status ?? '') === 'Filed' ? 'pill-ok' : 'pill-warn' }}">{{ $r->status ?? 'Pending' }}</span></td>

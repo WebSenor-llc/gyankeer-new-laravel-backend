@@ -23,10 +23,10 @@
 
             <h2 class="font-semibold text-sm mb-2">Salary Summary (Estimated for FY {{ $fy }})</h2>
             <table class="grid-tbl">
-                <tr><th>Annual Gross</th><td>&#8377;{{ number_format(($emp->current_gross ?? 0) * 12, 2) }}</td></tr>
+                <tr><th>Annual Gross</th><td>&#8377;{{ number_format(($emp->current_gross ?? 0) * 12, 0) }}</td></tr>
                 <tr><th>Standard Deduction (Sec 16(ia))</th><td>&#8377;75,000.00</td></tr>
                 <tr><th>Professional Tax</th><td>&#8377;2,400.00</td></tr>
-                <tr><th>Net Taxable Income (est.)</th><td><strong>&#8377;{{ number_format(max(0, ($emp->current_gross ?? 0) * 12 - 77400), 2) }}</strong></td></tr>
+                <tr><th>Net Taxable Income (est.)</th><td><strong>&#8377;{{ number_format(max(0, ($emp->current_gross ?? 0) * 12 - 77400), 0) }}</strong></td></tr>
             </table>
 
             <p class="text-[11px] text-slate-400 mt-3">

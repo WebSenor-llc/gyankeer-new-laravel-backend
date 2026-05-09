@@ -181,6 +181,7 @@ class PayrollEngine
         $halfDays    = 0;
         $presentDays = 0;
         $paidLeaves  = 0;
+        $paidHolidays= 0;     // PH — paid holidays (Republic Day, Diwali, etc.)
         $usedSummary = false;
 
         if (\Illuminate\Support\Facades\Schema::hasTable('attendance_summary')) {
@@ -189,18 +190,19 @@ class PayrollEngine
                 ->where('period_month', $run->period_month)
                 ->first();
             if ($summary) {
-                // Counts from the raw user entry (decimals preserved):
-                //   P = full + half-Present (e.g. 25.5 means 25 full + 1 day with half attendance)
-                //   CL/SL/PL = paid leave (decimal half supported)
-                //   A = unpaid absent
-                //   HD = explicit half-day cells (each = 0.5 LOP)
-                $presentDays = (float) $summary->p_count;
-                $paidLeaves  = $summary->totalLeaveDays() + (float) $summary->w_count;
-                $absentDays  = (float) $summary->a_count;
-                $halfDays    = (float) $summary->hd_count;
-                $usedSummary = true;
+                $presentDays  = (float) $summary->p_count;
+                $paidLeaves   = $summary->totalLeaveDays() + (float) $summary->w_count;
+                $absentDays   = (float) $summary->a_count;
+                $halfDays     = (float) $summary->hd_count;
+                $paidHolidays = (float) ($summary->ph_count ?? 0);
+                $usedSummary  = true;
             }
         }
+
+        // Detect whether this is a contract-worker salary group early — needed
+        // for the unmarked-day handling below (different policy per category).
+        $groupNameForCheck  = (string) ($e->salary_group->salary_group_name ?? '');
+        $isWorkerForFallback = (bool) preg_match('/^\s*Cont(r?)a(r?)ctor\b/i', $groupNameForCheck);
 
         if (!$usedSummary) {
             $attendance = AttendanceDaily::where('emp_id', $e->emp_id)
@@ -218,20 +220,64 @@ class PayrollEngine
                     elseif ($s === 'Present' || $s === 'On Duty') $presentDays++;
                     elseif ($s !== '')                            $paidLeaves++;   // On Leave / Holiday / Weekly Off
                 }
-                // Days with no attendance row → treat as Present (marked nothing = full attendance)
+                // ── Unmarked-day handling ──
+                //   Regular employees (monthly salary): unmarked → Present
+                //     (legacy: salaried staff don't always track daily attendance)
+                //   Contract workers (daily wage): unmarked → ABSENT
+                //     (you must explicitly mark each Present day, otherwise no pay)
                 $unmarked = max(0, $totalDays - $attendance->count());
-                $presentDays += $unmarked;
+                if ($isWorkerForFallback) {
+                    $absentDays += $unmarked;     // strict — no inflated salary
+                } else {
+                    $presentDays += $unmarked;
+                }
             } else {
-                // No attendance recorded at all → assume full attendance (legacy behavior)
-                $presentDays = $totalDays;
+                // No attendance entries at all
+                if ($isWorkerForFallback) {
+                    // No attendance for a worker → no pay (fail-safe)
+                    $absentDays = $totalDays;
+                } else {
+                    // Legacy behavior for staff: full attendance assumed
+                    $presentDays = $totalDays;
+                }
             }
         }
 
-        // LOP days = full unpaid + half of half-days (HD cells where the *unworked*
-        // half is unpaid). Fractional P-counts already account for partial work.
-        $lopDays     = $absentDays + ($halfDays * 0.5);
-        $payableDays = max(0, $totalDays - $lopDays);
-        $payRatio    = $totalDays > 0 ? ($payableDays / $totalDays) : 1;
+        // ─── Determine wage model: contract worker vs regular employee ─────
+        // Contract workers (employees in a "Contractor" salary group with type
+        // Worker/Sub-Staff/Labour) are paid ONLY for actual present days.
+        // Weekly Offs, CL, SL, PL are NOT paid — pure daily-wage model.
+        // Regular employees (Staff, etc.) get paid for W/Off + paid leaves
+        // (full-month-attendance assumption, prorated only for absent + HD/2).
+        $isContractWorker = false;
+        $groupName = (string) ($e->salary_group->salary_group_name ?? '');
+        if (preg_match('/^\s*Cont(r?)a(r?)ctor\b/i', $groupName)) {
+            // Either "Contractor X" or seeded typo "Contarctor X" → contract worker group
+            $isContractWorker = true;
+        }
+
+        if ($isContractWorker) {
+            // ── Contract worker daily-wage formula ───────────────────────
+            //   Salary    = Basic + HRA + DA + Conv + Med + Spl  (sum)
+            //   per_day   = Salary ÷ 26 (workable days)
+            //   payable_days = Present + Paid Holidays + 0.5×Half-Days
+            //   final_salary = per_day × payable_days
+            //   ⇒ payRatio   = payable_days ÷ 26
+            // PH (paid holiday — Republic Day, Diwali, etc.) is treated
+            // exactly like Present for workers. W/Off and CL/SL/PL stay UNPAID.
+            $payableDays   = $presentDays + $paidHolidays + ($halfDays * 0.5);
+            $workableDays  = (int) config('hreasy.payroll.worker_divisor', 26);
+            $payRatio      = $workableDays > 0 ? ($payableDays / $workableDays) : 0;
+            // For payslip display, show LOP relative to the 26-day standard
+            $lopDays       = max(0, $workableDays - $payableDays);
+        } else {
+            // ── Regular employee (Staff, Sub-Staff) — UNCHANGED ──────────
+            // Monthly-salaried employees get paid everything except Absent
+            // + 0.5×HD. PH is irrelevant here (their pay isn't day-based).
+            $lopDays     = $absentDays + ($halfDays * 0.5);
+            $payableDays = max(0, $totalDays - $lopDays);
+            $payRatio    = $totalDays > 0 ? ($payableDays / $totalDays) : 1;
+        }
 
         // Prorate every component
         $basic = round($basic * $payRatio, 2);

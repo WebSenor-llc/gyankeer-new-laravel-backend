@@ -14,8 +14,8 @@
                         <td>{{ $e->full_name }}</td>
                         <td>{{ $e->last_increment_date }}</td>
                         <td>{{ $e->last_increment_pct }}%</td>
-                        <td>&#8377;{{ number_format($e->last_increment_old_gross, 2) }}</td>
-                        <td>&#8377;{{ number_format($e->last_increment_new_gross, 2) }}</td>
+                        <td>&#8377;{{ number_format($e->last_increment_old_gross, 0) }}</td>
+                        <td>&#8377;{{ number_format($e->last_increment_new_gross, 0) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="text-center py-6 text-slate-500">No increments recorded yet.</td></tr>

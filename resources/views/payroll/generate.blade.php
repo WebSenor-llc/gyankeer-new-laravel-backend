@@ -63,12 +63,12 @@
                 <button type="submit" class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C;color:#fff">Get List</button>
                 <button type="button" onclick="document.getElementById('genForm').submit()" class="tb-btn primary" style="background:#16A34A;border-color:#15803D;color:#fff" @disabled(!$previewLoaded)>Generate Salary</button>
                 @if($previewLoaded && $employees->isNotEmpty())
-                    <a href="{{ route('payroll.generate', ['company_id'=>$companyId,'salary_group_id'=>$salaryGroupId,'year'=>$year,'month'=>$month,'get_list'=>1,'export'=>'csv']) }}"
-                       class="tb-btn primary" style="background:#16A34A;border-color:#15803D">⬇ Export CSV</a>
-                    <a href="{{ route('payroll.generate', ['company_id'=>$companyId,'salary_group_id'=>$salaryGroupId,'year'=>$year,'month'=>$month,'get_list'=>1,'export'=>'xls']) }}"
-                       class="tb-btn primary" style="background:#0EA5E9;border-color:#0284C7">⬇ Export Excel</a>
-                    <a href="{{ route('payroll.generate', ['company_id'=>$companyId,'salary_group_id'=>$salaryGroupId,'year'=>$year,'month'=>$month,'get_list'=>1,'export'=>'pdf']) }}"
-                       target="_blank" class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C">⬇ Export PDF</a>
+                    <button type="button" onclick="exportSelected('csv')"
+                            class="tb-btn primary" style="background:#16A34A;border-color:#15803D">⬇ Export CSV</button>
+                    <button type="button" onclick="exportSelected('xls')"
+                            class="tb-btn primary" style="background:#0EA5E9;border-color:#0284C7">⬇ Export Excel</button>
+                    <button type="button" onclick="exportSelected('pdf')"
+                            class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C">⬇ Export PDF</button>
                     @if($existingPayslipEmps->isNotEmpty())
                         <button type="button" onclick="document.getElementById('deleteModal').style.display='flex'"
                                 class="tb-btn primary" style="background:#7C2D12;border-color:#7C2D12;color:#fff">🗑️ Delete Payroll</button>
@@ -110,7 +110,7 @@
                                 <td>{{ $e->full_name }}</td>
                                 <td>{{ $e->department->dept_name ?? '—' }}</td>
                                 <td>{{ $e->salary_group->salary_group_name ?? '—' }}</td>
-                                <td class="text-right">{{ number_format((float)$e->current_gross, 2) }}</td>
+                                <td class="text-right">{{ number_format((float)$e->current_gross, 0) }}</td>
                                 <td class="text-xs text-slate-500">{{ $e->bank_account_no ?: '—' }}</td>
                                 <td>
                                     @if($existingPayslipEmps->contains($e->emp_id))
@@ -131,7 +131,7 @@
                             <tr style="background:#F1F5F9;font-weight:600">
                                 <td></td>
                                 <td colspan="4">Total: {{ $employees->count() }} employees</td>
-                                <td class="text-right">₹{{ number_format($employees->sum(fn($e) => (float)$e->current_gross), 2) }}</td>
+                                <td class="text-right">₹{{ number_format($employees->sum(fn($e) => (float)$e->current_gross), 0) }}</td>
                                 <td colspan="2"></td>
                             </tr>
                         </tfoot>
@@ -209,5 +209,39 @@ function refreshCount() {
     if (el) el.textContent = selected;
 }
 document.querySelectorAll('.empChk').forEach(cb => cb.addEventListener('change', refreshCount));
+
+/**
+ * Build an export URL that includes ONLY the checked employees.
+ * If everyone is checked, omit the selected_emp_ids[] params (smaller URL).
+ */
+function exportSelected(format) {
+    const checked = Array.from(document.querySelectorAll('.empChk:checked')).map(cb => cb.value);
+    const total   = document.querySelectorAll('.empChk').length;
+
+    if (checked.length === 0) {
+        alert('Please check at least one employee to export.');
+        return;
+    }
+
+    const base = "{{ route('payroll.generate') }}";
+    const params = new URLSearchParams({
+        company_id:      "{{ $companyId }}",
+        salary_group_id: "{{ $salaryGroupId }}",
+        year:            "{{ $year }}",
+        month:           "{{ $month }}",
+        get_list:        "1",
+        export:          format,
+    });
+    // Only attach selected_emp_ids[] when the selection is a subset
+    if (checked.length < total) {
+        checked.forEach(id => params.append('selected_emp_ids[]', id));
+    }
+    const url = base + '?' + params.toString();
+    if (format === 'pdf') {
+        window.open(url, '_blank');
+    } else {
+        window.location = url;
+    }
+}
 </script>
 @endsection

@@ -51,8 +51,8 @@
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4 text-sm">
             <div><div class="text-[11px] text-slate-500 uppercase">Eligible Employees</div><div class="text-lg font-bold">{{ (int) $run->eligible_emp_count }}</div></div>
             <div><div class="text-[11px] text-slate-500 uppercase">Payslips Generated</div><div class="text-lg font-bold">{{ $payslipCount }}</div></div>
-            <div><div class="text-[11px] text-slate-500 uppercase">Total Earnings</div><div class="text-lg font-bold">&#8377;{{ number_format($run->total_earnings, 2) }}</div></div>
-            <div><div class="text-[11px] text-slate-500 uppercase">Total Deductions</div><div class="text-lg font-bold">&#8377;{{ number_format($run->total_deductions, 2) }}</div></div>
+            <div><div class="text-[11px] text-slate-500 uppercase">Total Earnings</div><div class="text-lg font-bold">&#8377;{{ number_format($run->total_earnings, 0) }}</div></div>
+            <div><div class="text-[11px] text-slate-500 uppercase">Total Deductions</div><div class="text-lg font-bold">&#8377;{{ number_format($run->total_deductions, 0) }}</div></div>
         </div>
     </div>
 
@@ -60,30 +60,30 @@
         <div class="card p-4">
             <h2 class="font-semibold mb-2">Statutory Totals</h2>
             <table class="grid-tbl">
-                <tr><th>PF (Employee 12%)</th><td>&#8377;{{ number_format($run->total_pf_emp, 2) }}</td></tr>
-                <tr><th>PF (Employer 3.67%)</th><td>&#8377;{{ number_format($run->total_pf_er, 2) }}</td></tr>
-                <tr><th>EPS (8.33%)</th><td>&#8377;{{ number_format($run->total_eps, 2) }}</td></tr>
-                <tr><th>EDLI (0.5%)</th><td>&#8377;{{ number_format($run->total_edli, 2) }}</td></tr>
-                <tr><th>PF Admin (0.5%)</th><td>&#8377;{{ number_format($run->total_admin, 2) }}</td></tr>
-                <tr><th>ESI (Employee 0.75%)</th><td>&#8377;{{ number_format($run->total_esi_emp, 2) }}</td></tr>
-                <tr><th>ESI (Employer 3.25%)</th><td>&#8377;{{ number_format($run->total_esi_er, 2) }}</td></tr>
-                <tr><th>Professional Tax</th><td>&#8377;{{ number_format($run->total_pt, 2) }}</td></tr>
-                <tr><th>LWF (Employee + Employer)</th><td>&#8377;{{ number_format($run->total_lwf_emp + $run->total_lwf_er, 2) }}</td></tr>
-                <tr><th>TDS</th><td>&#8377;{{ number_format($run->total_tds, 2) }}</td></tr>
+                <tr><th>PF (Employee 12%)</th><td>&#8377;{{ number_format($run->total_pf_emp, 0) }}</td></tr>
+                <tr><th>PF (Employer 3.67%)</th><td>&#8377;{{ number_format($run->total_pf_er, 0) }}</td></tr>
+                <tr><th>EPS (8.33%)</th><td>&#8377;{{ number_format($run->total_eps, 0) }}</td></tr>
+                <tr><th>EDLI (0.5%)</th><td>&#8377;{{ number_format($run->total_edli, 0) }}</td></tr>
+                <tr><th>PF Admin (0.5%)</th><td>&#8377;{{ number_format($run->total_admin, 0) }}</td></tr>
+                <tr><th>ESI (Employee 0.75%)</th><td>&#8377;{{ number_format($run->total_esi_emp, 0) }}</td></tr>
+                <tr><th>ESI (Employer 3.25%)</th><td>&#8377;{{ number_format($run->total_esi_er, 0) }}</td></tr>
+                <tr><th>Professional Tax</th><td>&#8377;{{ number_format($run->total_pt, 0) }}</td></tr>
+                <tr><th>LWF (Employee + Employer)</th><td>&#8377;{{ number_format($run->total_lwf_emp + $run->total_lwf_er, 0) }}</td></tr>
+                <tr><th>TDS</th><td>&#8377;{{ number_format($run->total_tds, 0) }}</td></tr>
             </table>
         </div>
 
         <div class="card p-4">
             <h2 class="font-semibold mb-2">Provisions</h2>
             <table class="grid-tbl">
-                <tr><th>Bonus Provision</th><td>&#8377;{{ number_format($run->total_bonus_provision, 2) }}</td></tr>
-                <tr><th>Gratuity Provision</th><td>&#8377;{{ number_format($run->total_gratuity_provision, 2) }}</td></tr>
+                <tr><th>Bonus Provision</th><td>&#8377;{{ number_format($run->total_bonus_provision, 0) }}</td></tr>
+                <tr><th>Gratuity Provision</th><td>&#8377;{{ number_format($run->total_gratuity_provision, 0) }}</td></tr>
             </table>
 
             <div class="card p-4 mt-3" style="background:#FEF2F2;border-color:#FCA5A5">
                 <div class="text-[11px] text-red-700 uppercase font-semibold">Total Net Payout</div>
-                <div class="text-2xl font-bold text-red-700">&#8377;{{ number_format($run->total_net_payout, 2) }}</div>
-                <div class="text-xs text-slate-500 mt-1">Total Employer Cost (CTC): &#8377;{{ number_format($run->total_employer_cost, 2) }}</div>
+                <div class="text-2xl font-bold text-red-700">&#8377;{{ number_format($run->total_net_payout, 0) }}</div>
+                <div class="text-xs text-slate-500 mt-1">Total Employer Cost (CTC): &#8377;{{ number_format($run->total_employer_cost, 0) }}</div>
             </div>
         </div>
     </div>
@@ -103,15 +103,15 @@
                 @foreach(\App\Models\Payslip::where('run_id', $run->run_id)->take(50)->get() as $p)
                     <tr>
                         <td>{{ $p->emp_id }}</td>
-                        <td>&#8377;{{ number_format($p->basic, 2) }}</td>
-                        <td>&#8377;{{ number_format($p->hra, 2) }}</td>
-                        <td>&#8377;{{ number_format($p->da, 2) }}</td>
-                        <td>&#8377;{{ number_format($p->gross_earnings, 2) }}</td>
-                        <td>&#8377;{{ number_format($p->epf_emp, 2) }}</td>
-                        <td>&#8377;{{ number_format($p->esi_emp, 2) }}</td>
-                        <td>&#8377;{{ number_format($p->pt, 2) }}</td>
-                        <td>&#8377;{{ number_format($p->tds, 2) }}</td>
-                        <td><strong>&#8377;{{ number_format($p->net_pay, 2) }}</strong></td>
+                        <td>&#8377;{{ number_format($p->basic, 0) }}</td>
+                        <td>&#8377;{{ number_format($p->hra, 0) }}</td>
+                        <td>&#8377;{{ number_format($p->da, 0) }}</td>
+                        <td>&#8377;{{ number_format($p->gross_earnings, 0) }}</td>
+                        <td>&#8377;{{ number_format($p->epf_emp, 0) }}</td>
+                        <td>&#8377;{{ number_format($p->esi_emp, 0) }}</td>
+                        <td>&#8377;{{ number_format($p->pt, 0) }}</td>
+                        <td>&#8377;{{ number_format($p->tds, 0) }}</td>
+                        <td><strong>&#8377;{{ number_format($p->net_pay, 0) }}</strong></td>
                     </tr>
                 @endforeach
                 </tbody>

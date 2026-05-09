@@ -54,26 +54,26 @@ $net   = $p->net_pay ?? max(0, $gross - $totDed);
         <div>
             <div class="font-semibold text-sm mb-2 text-slate-700">EARNINGS</div>
             <table class="grid-tbl text-sm">
-                <tr><td>Basic</td><td class="text-right">&#8377;{{ number_format($basic, 2) }}</td></tr>
-                <tr><td>HRA (Section 10(13A))</td><td class="text-right">&#8377;{{ number_format($hra, 2) }}</td></tr>
-                <tr><td>DA</td><td class="text-right">&#8377;{{ number_format($da, 2) }}</td></tr>
-                <tr><td>Conveyance</td><td class="text-right">&#8377;{{ number_format($conv, 2) }}</td></tr>
-                <tr><td>Medical</td><td class="text-right">&#8377;{{ number_format($med, 2) }}</td></tr>
-                <tr><td>Special Allowance</td><td class="text-right">&#8377;{{ number_format($spl, 2) }}</td></tr>
-                <tr><td>Bonus</td><td class="text-right">&#8377;{{ number_format($bonus, 2) }}</td></tr>
-                <tr><td>Arrear</td><td class="text-right">&#8377;{{ number_format($arr, 2) }}</td></tr>
-                <tr style="background:#FEF2F2"><th>Gross Earnings</th><th class="text-right">&#8377;{{ number_format($gross, 2) }}</th></tr>
+                <tr><td>Basic</td><td class="text-right">&#8377;{{ number_format($basic, 0) }}</td></tr>
+                <tr><td>HRA (Section 10(13A))</td><td class="text-right">&#8377;{{ number_format($hra, 0) }}</td></tr>
+                <tr><td>DA</td><td class="text-right">&#8377;{{ number_format($da, 0) }}</td></tr>
+                <tr><td>Conveyance</td><td class="text-right">&#8377;{{ number_format($conv, 0) }}</td></tr>
+                <tr><td>Medical</td><td class="text-right">&#8377;{{ number_format($med, 0) }}</td></tr>
+                <tr><td>Special Allowance</td><td class="text-right">&#8377;{{ number_format($spl, 0) }}</td></tr>
+                <tr><td>Bonus</td><td class="text-right">&#8377;{{ number_format($bonus, 0) }}</td></tr>
+                <tr><td>Arrear</td><td class="text-right">&#8377;{{ number_format($arr, 0) }}</td></tr>
+                <tr style="background:#FEF2F2"><th>Gross Earnings</th><th class="text-right">&#8377;{{ number_format($gross, 0) }}</th></tr>
             </table>
         </div>
         <div>
             <div class="font-semibold text-sm mb-2 text-slate-700">DEDUCTIONS</div>
             <table class="grid-tbl text-sm">
-                <tr><td>EPF (12% of Basic+DA, capped &#8377;15k)</td><td class="text-right">&#8377;{{ number_format($pf, 2) }}</td></tr>
-                <tr><td>ESI (0.75% of gross, if eligible)</td><td class="text-right">&#8377;{{ number_format($esi, 2) }}</td></tr>
-                <tr><td>Professional Tax</td><td class="text-right">&#8377;{{ number_format($pt, 2) }}</td></tr>
-                <tr><td>LWF</td><td class="text-right">&#8377;{{ number_format($lwf, 2) }}</td></tr>
-                <tr><td>TDS (Income Tax)</td><td class="text-right">&#8377;{{ number_format($tds, 2) }}</td></tr>
-                <tr style="background:#FEF2F2"><th>Total Deductions</th><th class="text-right">&#8377;{{ number_format($totDed, 2) }}</th></tr>
+                <tr><td>EPF (12% of Basic+DA, capped &#8377;15k)</td><td class="text-right">&#8377;{{ number_format($pf, 0) }}</td></tr>
+                <tr><td>ESI (0.75% of gross, if eligible)</td><td class="text-right">&#8377;{{ number_format($esi, 0) }}</td></tr>
+                <tr><td>Professional Tax</td><td class="text-right">&#8377;{{ number_format($pt, 0) }}</td></tr>
+                <tr><td>LWF</td><td class="text-right">&#8377;{{ number_format($lwf, 0) }}</td></tr>
+                <tr><td>TDS (Income Tax)</td><td class="text-right">&#8377;{{ number_format($tds, 0) }}</td></tr>
+                <tr style="background:#FEF2F2"><th>Total Deductions</th><th class="text-right">&#8377;{{ number_format($totDed, 0) }}</th></tr>
             </table>
         </div>
     </div>
@@ -83,8 +83,8 @@ $net   = $p->net_pay ?? max(0, $gross - $totDed);
         <div class="flex items-center justify-between">
             <div>
                 <div class="text-xs uppercase opacity-80">Net Pay</div>
-                <div class="text-2xl font-bold">&#8377;{{ number_format($net, 2) }}</div>
-                <div class="text-xs opacity-80 mt-1">Indian Rupees {{ number_format($net, 2) }} only</div>
+                <div class="text-2xl font-bold">&#8377;{{ number_format($net, 0) }}</div>
+                <div class="text-xs opacity-80 mt-1">Indian Rupees {{ number_format($net, 0) }} only</div>
             </div>
             <div class="text-right text-xs opacity-80">
                 <div>Salary Period: {{ \DateTime::createFromFormat('!m', $p->period_month)->format('M') }} {{ $p->period_year }}</div>

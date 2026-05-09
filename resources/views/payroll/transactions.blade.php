@@ -22,8 +22,8 @@
 
     <div class="grid grid-cols-3 gap-3 mb-4">
         <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Transactions</div><div class="text-lg font-bold">{{ $totals['count'] }}</div></div>
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Debit</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['debit'], 2) }}</div></div>
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Credit</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['credit'], 2) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Debit</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['debit'], 0) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Credit</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['credit'], 0) }}</div></div>
     </div>
 
     <div class="card overflow-x-auto">
@@ -38,8 +38,8 @@
                         <td>{{ $r->employee_name ?? ('Emp #'.$r->emp_id) }}</td>
                         <td><span class="pill pill-info">{{ $r->txn_type ?? '—' }}</span></td>
                         <td>{{ $r->component_name ?? $r->component_code ?? '—' }}</td>
-                        <td>&#8377;{{ number_format($r->debit_amount, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->credit_amount, 2) }}</td>
+                        <td>&#8377;{{ number_format($r->debit_amount, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->credit_amount, 0) }}</td>
                         <td class="text-xs text-slate-500">{{ $r->gl_account_code }} — {{ $r->gl_account_name }}</td>
                     </tr>
                 @empty

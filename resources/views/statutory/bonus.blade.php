@@ -30,10 +30,10 @@
                                 <span class="pill pill-warn">No</span>
                             @endif
                         </td>
-                        <td>&#8377;{{ number_format($r->monthly_basic_da ?? 0, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->bonus_wage_capped_7k ?? 0, 2) }}</td>
+                        <td>&#8377;{{ number_format($r->monthly_basic_da ?? 0, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->bonus_wage_capped_7k ?? 0, 0) }}</td>
                         <td>{{ $r->bonus_percent ?? '—' }}%</td>
-                        <td>&#8377;{{ number_format($r->annual_bonus_amount ?? 0, 2) }}</td>
+                        <td>&#8377;{{ number_format($r->annual_bonus_amount ?? 0, 0) }}</td>
                         <td><span class="pill {{ ($r->status ?? '') === 'Paid' ? 'pill-ok' : 'pill-warn' }}">{{ $r->status ?? 'Pending' }}</span></td>
                     </tr>
                 @empty

@@ -34,12 +34,12 @@
     </form>
 
     <div class="grid grid-cols-2 md:grid-cols-6 gap-3 mb-4">
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total EPF</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['epf'], 2) }}</div></div>
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total VPF</div><div class="text-lg font-bold text-blue-700">&#8377;{{ number_format($totals['vpf'] ?? 0, 2) }}</div></div>
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total ESI</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['esi'], 2) }}</div></div>
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total PT</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['pt'], 2) }}</div></div>
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total TDS</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['tds'], 2) }}</div></div>
-        <div class="card p-3" style="background:#FEF2F2;border-color:#FCA5A5"><div class="text-[11px] text-red-700 uppercase font-semibold">Grand Total</div><div class="text-lg font-bold text-red-700">&#8377;{{ number_format($totals['total'], 2) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total EPF</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['epf'], 0) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total VPF</div><div class="text-lg font-bold text-blue-700">&#8377;{{ number_format($totals['vpf'] ?? 0, 0) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total ESI</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['esi'], 0) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total PT</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['pt'], 0) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total TDS</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['tds'], 0) }}</div></div>
+        <div class="card p-3" style="background:#FEF2F2;border-color:#FCA5A5"><div class="text-[11px] text-red-700 uppercase font-semibold">Grand Total</div><div class="text-lg font-bold text-red-700">&#8377;{{ number_format($totals['total'], 0) }}</div></div>
     </div>
 
     <div class="card overflow-x-auto">
@@ -64,11 +64,11 @@
                                 <span class="ml-1 text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold" title="Pre-entered before payroll run">PRE-ENTERED</span>
                             @endif
                         </td>
-                        <td>&#8377;{{ number_format($r['epf'], 2) }}</td>
-                        <td style="background:#DBEAFE">&#8377;{{ number_format($r['vpf'] ?? 0, 2) }}</td>
-                        <td>&#8377;{{ number_format($r['esi'], 2) }}</td>
-                        <td>&#8377;{{ number_format($r['pt'], 2) }}</td>
-                        <td>&#8377;{{ number_format($r['lwf'], 2) }}</td>
+                        <td>&#8377;{{ number_format($r['epf'], 0) }}</td>
+                        <td style="background:#DBEAFE">&#8377;{{ number_format($r['vpf'] ?? 0, 0) }}</td>
+                        <td>&#8377;{{ number_format($r['esi'], 0) }}</td>
+                        <td>&#8377;{{ number_format($r['pt'], 0) }}</td>
+                        <td>&#8377;{{ number_format($r['lwf'], 0) }}</td>
                         {{-- Quick TDS edit form (per row) — works pre- and post-payroll --}}
                         <td style="background:#FEF3C7;padding:2px">
                             <form method="POST" action="{{ route('deductions.update-tds') }}" class="flex gap-1 items-center" onsubmit="return confirm('Update TDS for {{ $r['name'] }} to ₹' + this.tds.value + '?')">
@@ -81,11 +81,11 @@
                                 <button type="submit" class="tb-btn" style="padding:2px 6px;font-size:10px;background:#16A34A;color:#fff;border-color:#15803D" title="Save TDS">💾</button>
                             </form>
                         </td>
-                        <td>&#8377;{{ number_format($r['loan_emi'], 2) }}</td>
-                        <td>&#8377;{{ number_format($r['advance'], 2) }}</td>
-                        <td>&#8377;{{ number_format($r['fine'], 2) }}</td>
-                        <td>&#8377;{{ number_format($r['post_ded'], 2) }}</td>
-                        <td><strong>&#8377;{{ number_format($r['total'], 2) }}</strong></td>
+                        <td>&#8377;{{ number_format($r['loan_emi'], 0) }}</td>
+                        <td>&#8377;{{ number_format($r['advance'], 0) }}</td>
+                        <td>&#8377;{{ number_format($r['fine'], 0) }}</td>
+                        <td>&#8377;{{ number_format($r['post_ded'], 0) }}</td>
+                        <td><strong>&#8377;{{ number_format($r['total'], 0) }}</strong></td>
                         <td>
                             <a href="{{ route('deductions.edit', ['empId' => $r['emp_id'], 'year' => $r['period_year'], 'month' => $r['period_month']]) }}"
                                class="tb-btn" style="padding:2px 8px;font-size:11px">Edit all</a>

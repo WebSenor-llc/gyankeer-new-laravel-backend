@@ -50,8 +50,8 @@
                     <button type="button" onclick="reloadForEmp()" class="tb-btn">🔍 Load existing</button>
                     @if($payslip)
                         <span class="text-xs text-slate-500 ml-2">
-                            Gross: <strong>₹{{ number_format($payslip->gross_earnings, 2) }}</strong> ·
-                            TDS (manual): <strong>₹{{ number_format($payslip->tds ?? 0, 2) }}</strong>
+                            Gross: <strong>₹{{ number_format($payslip->gross_earnings, 0) }}</strong> ·
+                            TDS (manual): <strong>₹{{ number_format($payslip->tds ?? 0, 0) }}</strong>
                         </span>
                     @endif
                 </div>
@@ -110,11 +110,11 @@
                 <div class="mt-4 p-3 bg-slate-50 rounded text-xs">
                     <strong>Live preview after save (auto-recalculates net pay):</strong>
                     <table class="text-xs mt-2" style="width:100%">
-                        <tr><td>Gross Earnings:</td><td class="text-right">₹{{ number_format($payslip->gross_earnings, 2) }}</td></tr>
-                        <tr><td>EPF + ESI + PT + LWF (statutory):</td><td class="text-right">₹{{ number_format(($payslip->epf_emp ?? 0)+($payslip->esi_emp ?? 0)+(float)($payslip->pt ?? 0)+($payslip->lwf_emp ?? 0), 2) }}</td></tr>
-                        <tr><td>Current TDS (manual only):</td><td class="text-right">₹{{ number_format($payslip->tds ?? 0, 2) }}</td></tr>
-                        <tr><td>Current Total Deductions:</td><td class="text-right">₹{{ number_format($payslip->total_deductions ?? 0, 2) }}</td></tr>
-                        <tr><td><strong>Current Net Pay:</strong></td><td class="text-right"><strong>₹{{ number_format($payslip->net_pay ?? 0, 2) }}</strong></td></tr>
+                        <tr><td>Gross Earnings:</td><td class="text-right">₹{{ number_format($payslip->gross_earnings, 0) }}</td></tr>
+                        <tr><td>EPF + ESI + PT + LWF (statutory):</td><td class="text-right">₹{{ number_format(($payslip->epf_emp ?? 0)+($payslip->esi_emp ?? 0)+(float)($payslip->pt ?? 0)+($payslip->lwf_emp ?? 0), 0) }}</td></tr>
+                        <tr><td>Current TDS (manual only):</td><td class="text-right">₹{{ number_format($payslip->tds ?? 0, 0) }}</td></tr>
+                        <tr><td>Current Total Deductions:</td><td class="text-right">₹{{ number_format($payslip->total_deductions ?? 0, 0) }}</td></tr>
+                        <tr><td><strong>Current Net Pay:</strong></td><td class="text-right"><strong>₹{{ number_format($payslip->net_pay ?? 0, 0) }}</strong></td></tr>
                     </table>
                 </div>
             @endif

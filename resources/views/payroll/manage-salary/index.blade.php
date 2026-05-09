@@ -69,7 +69,7 @@
                         <td class="text-xs">{{ $e->designation->designation_name ?? '—' }}</td>
                         <td class="text-xs">{{ $e->salary_group->salary_group_name ?? '—' }}</td>
                         <td class="text-xs">{{ $e->department->dept_name ?? '—' }}</td>
-                        <td class="text-right">&#8377;{{ number_format((float)$e->current_gross, 2) }}</td>
+                        <td class="text-right">&#8377;{{ number_format((float)$e->current_gross, 0) }}</td>
                         <td>
                             <a href="{{ route('manage-salary.config', $e->emp_id) }}" class="tb-btn primary" style="padding:2px 10px;font-size:11px">⚙ Configure</a>
                         </td>

@@ -4,178 +4,246 @@
     $emp = $payslip->emp;
     $totalDays = (int) Carbon::createFromDate($payslip->period_year, $payslip->period_month, 1)->daysInMonth;
 
-    // Earnings & deductions tables
-    $earnings = [
-        ['Basic',          (float) $payslip->basic],
-        ['House Rent Allowance (HRA)', (float) $payslip->hra],
-        ['Dearness Allowance (DA)',    (float) $payslip->da],
-        ['Conveyance',     (float) $payslip->conveyance],
-        ['Medical',        (float) $payslip->medical],
-        ['Special Allowance', (float) $payslip->spl_allow],
-        ['Bonus',          (float) $payslip->bonus],
-        ['Arrear',         (float) $payslip->arrear],
-        // Overtime is intentionally NOT shown here — it's paid SEPARATELY via
-        // the Overtime Sheet/Incentive Register, not through the salary slip.
-    ];
-    $earnings = array_filter($earnings, fn($r) => $r[1] > 0);
+    // ------- Pull attendance summary for the slip's period (if any) -------
+    $att = \App\Models\AttendanceSummary::where('emp_id', $emp->emp_id)
+        ->where('period_year',  $payslip->period_year)
+        ->where('period_month', $payslip->period_month)
+        ->first();
 
-    $deductions = [
-        ['EPF (Employee)',  (float) $payslip->epf_emp],
-        ['VPF (Voluntary)', (float) ($payslip->vpf ?? 0)],
-        ['ESI (Employee)',  (float) $payslip->esi_emp],
-        ['Professional Tax', (float) $payslip->pt],
-        ['LWF',             (float) $payslip->lwf_emp],
-        ['Income Tax (TDS)', (float) $payslip->tds],
-        ['Loan EMI',        (float) $payslip->loan_emi],
-        ['Advance Recovery', (float) $payslip->advance_recovery],
-        ['Fine Recovery',    (float) $payslip->fine_recovery],
-        ['Other Deductions', (float) $payslip->post_deduction],
-    ];
-    $deductions = array_filter($deductions, fn($r) => $r[1] > 0);
+    $f = fn ($v, $d = 0.0) => (float) ($v ?? $d);
+    $att_present = $f(optional($att)->p_count);
+    $att_wo      = $f(optional($att)->w_count);
+    $att_ph      = $f(optional($att)->ph_count);
+    $att_abs     = $f(optional($att)->a_count);
+    $att_cl      = $f(optional($att)->cl_count);
+    $att_pl      = $f(optional($att)->pl_count);
+    $att_sl      = $f(optional($att)->sl_count);
+    $att_hd      = $f(optional($att)->hd_count);
+    // CO/CR & Other-leave aren't tracked separately yet; placeholder zeros
+    $att_co_cr   = 0.0;
+    $att_other   = 0.0;
+    $att_total   = $att_present + $att_wo + $att_ph + $att_abs + $att_cl + $att_pl + $att_sl + ($att_hd * 0.5);
+    $payableDays = (float) ($payslip->payable_days ?? 0);
 
-    // Convert net pay to words (simple Indian numbering)
-    function rupeesInWords(float $amt): string {
-        if ($amt < 0.005) return 'Zero';
-        $whole = (int) floor($amt);
-        $paise = (int) round(($amt - $whole) * 100);
-        $words = numToIndianWords($whole) . ' Rupees';
-        if ($paise > 0) $words .= ' and ' . numToIndianWords($paise) . ' Paise';
-        return $words . ' Only';
-    }
-    function numToIndianWords(int $n): string {
-        if ($n == 0) return 'Zero';
-        $a = ['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
-        $b = ['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
-        $word = function ($num) use (&$word, $a, $b) {
-            if ($num < 20) return $a[$num];
-            if ($num < 100) return trim($b[(int)($num/10)] . ' ' . $a[$num%10]);
-            return trim($a[(int)($num/100)] . ' Hundred ' . ($num%100 ? $word($num%100) : ''));
-        };
-        $crore = (int) floor($n / 10000000);  $n %= 10000000;
-        $lakh  = (int) floor($n / 100000);    $n %= 100000;
-        $thou  = (int) floor($n / 1000);      $n %= 1000;
-        $rest  = $n;
-        $parts = [];
-        if ($crore) $parts[] = $word($crore) . ' Crore';
-        if ($lakh)  $parts[] = $word($lakh)  . ' Lakh';
-        if ($thou)  $parts[] = $word($thou)  . ' Thousand';
-        if ($rest)  $parts[] = $word($rest);
-        return trim(implode(' ', $parts));
-    }
+    // Leave balances (best-effort lookup — table may not have rows for every emp)
+    try {
+        $cl_bal = optional(\App\Models\LeaveBalance::where('emp_id', $emp->emp_id)
+                    ->where('leave_code', 'CL')->first())->closing_balance ?? null;
+        $pl_bal = optional(\App\Models\LeaveBalance::where('emp_id', $emp->emp_id)
+                    ->where('leave_code', 'PL')->first())->closing_balance ?? null;
+    } catch (\Throwable $e) { $cl_bal = null; $pl_bal = null; }
+
+    // Format helper: 0.00 numeric column on the slip
+    $fmt = fn ($v) => number_format((float) ($v ?? 0), 2);
+    $fmtInt = fn ($v) => number_format((float) ($v ?? 0), 0);
+
+    // Earning components — Basic+DA combined like the GTPPL slip
+    $basic_da = $f($payslip->basic) + $f($payslip->da);
+    $uniform  = $f($payslip->uniform_allowance ?? 0);   // optional column
+    $hra      = $f($payslip->hra);
+    $transport = $f($payslip->conveyance);
+    $medical  = $f($payslip->medical);
+    $spl_hr   = $f($payslip->spl_allow);
+
+    // Deduction labels (kept aligned to GTPPL slip ordering)
+    $d_pf       = $f($payslip->epf_emp);
+    $d_esi      = $f($payslip->esi_emp);
+    $d_advance  = $f($payslip->advance_recovery);
+    $d_loan     = $f($payslip->loan_emi);
+    $d_tds      = $f($payslip->tds);
+    $d_rent     = $f($payslip->rent_deduction ?? 0);
+    $d_mobile   = $f($payslip->mobile_deduction ?? 0);
+    $d_misc_nps = $f($payslip->post_deduction);   // misc/NPS bucket
+    $d_security = $f($payslip->security_deduction ?? 0);
+    $d_elec     = $f($payslip->electricity_deduction ?? 0);
+    $d_donation = $f($payslip->donation_deduction ?? 0);
+    $d_pt       = $f($payslip->pt);
+    $d_welfare  = $f($payslip->lwf_emp);
+    $d_canteen  = $f($payslip->canteen_deduction ?? 0);
+    $d_flat     = $f($payslip->flat_rent ?? 0);
+    $d_total    = $f($payslip->total_deductions);
+
+    $bankNameStr = $emp->bank->bank_name ?? '';
+    if (!empty($emp->bank_branch)) $bankNameStr = trim($bankNameStr . ' ' . $emp->bank_branch);
+
+    $groupLabel = $emp->salary_group->salary_group_name ?? '';
 @endphp
 
-<div class="card payslip-card" style="background:#fff;border:1px solid #cbd5e1;font-family:Arial,sans-serif">
+<div class="payslip-card" style="background:#fff;border:1px solid #000;font-family:Arial,sans-serif;color:#000">
 
-    {{-- Company header --}}
-    <div style="text-align:center;padding:16px 20px 10px;border-bottom:2px solid #991B1B">
-        <div style="font-size:22px;font-weight:bold;color:#991B1B;letter-spacing:0.5px">{{ $company->company_name ?? 'Company Name' }}</div>
-        @if($company)
-            <div style="font-size:11px;color:#64748B">
-                @if($company->registered_address){{ $company->registered_address }}@endif
-                @if($company->city), {{ $company->city }}@endif
-                @if($company->state), {{ $company->state }}@endif
-                @if($company->pin) — {{ $company->pin }}@endif
-            </div>
-            <div style="font-size:11px;color:#64748B;margin-top:2px">
-                @if($company->pan_no)PAN: {{ $company->pan_no }}@endif
-                @if($company->gstin) · GSTIN: {{ $company->gstin }}@endif
-            </div>
-        @endif
-        <div style="font-size:14px;font-weight:bold;color:#1E293B;margin-top:8px;background:#FEE2E2;display:inline-block;padding:3px 14px;border-radius:3px">
-            Salary Slip for {{ $monthName }} {{ $payslip->period_year }}
-        </div>
+    {{-- ===== Company name banner ===== --}}
+    <div style="text-align:center;padding:8px 10px 6px;font-size:18px;font-weight:bold">
+        {{ $company->company_name ?? 'Company Name' }}
     </div>
 
-    {{-- Employee details --}}
-    <table style="width:100%;font-size:12px;border-collapse:collapse">
+    {{-- ===== Salary Group sub-banner ===== --}}
+    <div style="text-align:center;padding:3px 10px 6px;font-size:12px;font-weight:bold;border-bottom:1px solid #000">
+        {{ $groupLabel }}
+    </div>
+
+    {{-- ===== Top info grid (3 columns) ===== --}}
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
         <tr>
-            <td style="padding:6px 12px;border-right:1px solid #e2e8f0;width:50%;vertical-align:top">
-                <table style="font-size:12px;width:100%">
-                    <tr><td style="color:#64748B;padding:2px 0;width:120px">Employee ID</td><td><strong>{{ $emp->emp_id }}</strong></td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">Name</td><td><strong>{{ $emp->full_name }}</strong></td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">Father / Husband</td><td>{{ $emp->fathers_name ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">Department</td><td>{{ $emp->department->dept_name ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">Designation</td><td>{{ $emp->designation->designation_name ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">Salary Group</td><td>{{ $emp->salary_group->salary_group_name ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">Date of Joining</td><td>{{ $emp->date_of_joining ?? '—' }}</td></tr>
+            {{-- Column 1 — Employee identity --}}
+            <td style="vertical-align:top;border-right:1px solid #000;padding:6px 10px;width:38%">
+                <table style="width:100%;font-size:11px">
+                    <tr><td style="padding:2px 0;font-weight:bold;width:110px">EMCode</td><td>:</td><td>{{ $emp->emp_id }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">Name</td><td>:</td><td>{{ $emp->full_name }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">Fat./Hus. Name</td><td>:</td><td>{{ $emp->fathers_name ?? '' }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">Designation</td><td>:</td><td>{{ $emp->designation->designation_name ?? '' }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">Basic</td><td>:</td><td>{{ $fmtInt($payslip->basic) }}</td></tr>
                 </table>
             </td>
-            <td style="padding:6px 12px;width:50%;vertical-align:top">
-                <table style="font-size:12px;width:100%">
-                    <tr><td style="color:#64748B;padding:2px 0;width:120px">PAN</td><td>{{ $emp->pan_no ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">UAN</td><td>{{ $emp->uan ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">PF Number</td><td>{{ $emp->epf_member_id ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">ESI Number</td><td>{{ $emp->esi_ip_no ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">Bank</td><td>{{ $emp->bank->bank_name ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">A/C No</td><td>{{ $emp->bank_account_no ?? '—' }}</td></tr>
-                    <tr><td style="color:#64748B;padding:2px 0">IFSC</td><td>{{ $emp->bank_ifsc ?? '—' }}</td></tr>
+
+            {{-- Column 2 — Statutory & Bank --}}
+            <td style="vertical-align:top;border-right:1px solid #000;padding:6px 10px;width:38%">
+                <table style="width:100%;font-size:11px">
+                    <tr><td style="padding:2px 0;font-weight:bold;width:90px">Month</td><td>:</td><td>{{ $monthName }}/{{ $payslip->period_year }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">PF A/c No.</td><td>:</td><td style="word-break:break-all">{{ $emp->epf_member_id ?? '' }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">E.S.I. No.</td><td>:</td><td>{{ $emp->esi_ip_no ?? '' }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">Bank A/c No.</td><td>:</td><td>{{ $emp->bank_account_no ?? '' }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">Bank Name</td><td>:</td><td>{{ $bankNameStr }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">UAN No.</td><td>:</td><td>{{ $emp->uan ?? '' }}</td></tr>
+                </table>
+            </td>
+
+            {{-- Column 3 — Leave Balance --}}
+            <td style="vertical-align:top;padding:6px 10px;width:24%">
+                <div style="text-align:center;font-weight:bold;font-size:13px;margin-bottom:6px">Leave Balance</div>
+                <table style="width:100%;font-size:11px">
+                    <tr><td style="padding:2px 0;font-weight:bold;width:35px">CL</td><td>:</td><td style="text-align:right">{{ $cl_bal !== null ? number_format($cl_bal, 1) : '—' }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">PL</td><td>:</td><td style="text-align:right">{{ $pl_bal !== null ? number_format($pl_bal, 0) : '—' }}</td></tr>
                 </table>
             </td>
         </tr>
     </table>
 
-    {{-- Attendance --}}
-    <table style="width:100%;font-size:12px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;background:#F8FAFC">
+    {{-- ===== Section header bar ===== --}}
+    <table style="width:100%;border-collapse:collapse;font-size:11.5px;border-top:1px solid #000">
+        <tr style="background:#f1f5f9;font-weight:bold">
+            <td style="padding:5px 10px;border-right:1px solid #000;width:34%">ATTENDANCE DETAILS</td>
+            <td style="padding:5px 10px;border-right:1px solid #000;width:33%">EARNING DETAILS</td>
+            <td style="padding:5px 10px;width:33%">DEDUCTION DETAILS</td>
+        </tr>
+    </table>
+
+    {{-- ===== Three-column body ===== --}}
+    <table style="width:100%;border-collapse:collapse;font-size:11px;border-top:1px solid #000">
         <tr>
-            <td style="padding:6px 12px;width:25%"><span style="color:#64748B">Total Days</span><br><strong>{{ $totalDays }}</strong></td>
-            <td style="padding:6px 12px;width:25%"><span style="color:#64748B">Payable Days</span><br><strong>{{ $payslip->payable_days ?? '—' }}</strong></td>
-            <td style="padding:6px 12px;width:25%"><span style="color:#64748B">LOP Days</span><br><strong>{{ $payslip->lop_days ?? 0 }}</strong></td>
-            <td style="padding:6px 12px;width:25%"><span style="color:#64748B">Present Days</span><br><strong>{{ $payslip->present_days ?? '—' }}</strong></td>
+            {{-- ATTENDANCE --}}
+            <td style="vertical-align:top;border-right:1px solid #000;padding:8px 10px;width:34%">
+                <table style="width:100%;font-size:11px">
+                    @php
+                        $attRows = [
+                            ['Working Days', $att_present + ($att_hd * 0.5)],
+                            ['Weekly off',   $att_wo],
+                            ['Paid Holiday', $att_ph],
+                            ['Absent',       $att_abs],
+                            ['CL',           $att_cl],
+                            ['PL',           $att_pl],
+                            ['SL',           $att_sl],
+                            ['CO/CR',        $att_co_cr],
+                            ['Other Leave',  $att_other],
+                            ['Total Days',   $att_total],
+                        ];
+                    @endphp
+                    @foreach($attRows as [$lbl, $val])
+                        <tr>
+                            <td style="padding:2px 0;font-weight:bold;width:110px">{{ $lbl }}</td>
+                            <td style="width:10px">:</td>
+                            <td style="text-align:right">{{ number_format((float) $val, 1) }}</td>
+                        </tr>
+                    @endforeach
+                </table>
+            </td>
+
+            {{-- EARNINGS --}}
+            <td style="vertical-align:top;border-right:1px solid #000;padding:8px 10px;width:33%">
+                <table style="width:100%;font-size:11px">
+                    @php
+                        $earnRows = array_filter([
+                            ['Basic + DA',                 $basic_da],
+                            ['Uniform All. / Academic All.', $uniform],
+                            ['HRA',                        $hra],
+                            ['Transport All.',             $transport],
+                            ['Medical Reim.',              $medical],
+                            ['SP / HR Allow.',             $spl_hr],
+                            ['Bonus',                      $f($payslip->bonus)],
+                            ['Arrear',                     $f($payslip->arrear)],
+                        ], fn($r) => $r[1] > 0);
+                    @endphp
+                    @foreach($earnRows as [$lbl, $val])
+                        <tr>
+                            <td style="padding:2px 0;font-weight:bold">{{ $lbl }}</td>
+                            <td style="width:10px">:</td>
+                            <td style="text-align:right">{{ $fmt($val) }}</td>
+                        </tr>
+                    @endforeach
+                </table>
+            </td>
+
+            {{-- DEDUCTIONS --}}
+            <td style="vertical-align:top;padding:8px 10px;width:33%">
+                <table style="width:100%;font-size:11px">
+                    @php
+                        $dedRows = [
+                            ['PF',               $d_pf],
+                            ['E.S.I.',           $d_esi],
+                            ['Advance',          $d_advance],
+                            ['Loan Amt.',        $d_loan],
+                            ['TDS',              $d_tds],
+                            ['Rent Ded.',        $d_rent],
+                            ['Mobile Ded.',      $d_mobile],
+                            ['Misc. Ded./NPS',   $d_misc_nps],
+                            ['Security',         $d_security],
+                            ['Elect. Ded.',      $d_elec],
+                            ['A.G. Donation',    $d_donation],
+                            ['Prof. Tax',        $d_pt],
+                            ['Welfare',          $d_welfare],
+                            ['Can. Ded.',        $d_canteen],
+                            ['Flat Rent',        $d_flat],
+                        ];
+                    @endphp
+                    @foreach($dedRows as [$lbl, $val])
+                        <tr>
+                            <td style="padding:2px 0;font-weight:bold">{{ $lbl }}</td>
+                            <td style="width:10px">:</td>
+                            <td style="text-align:right">{{ $fmt($val) }}</td>
+                        </tr>
+                    @endforeach
+                    <tr style="border-top:1px solid #000">
+                        <td style="padding:4px 0 2px;font-weight:bold;border-top:1px solid #000">Total Ded.</td>
+                        <td style="border-top:1px solid #000">:</td>
+                        <td style="text-align:right;font-weight:bold;border-top:1px solid #000">{{ $fmt($d_total) }}</td>
+                    </tr>
+                </table>
+            </td>
         </tr>
     </table>
 
-    {{-- Earnings + Deductions side-by-side --}}
-    <table style="width:100%;border-collapse:collapse;font-size:12px">
-        <tr style="background:#F1F5F9">
-            <th colspan="2" style="text-align:left;padding:8px 12px;border-right:1px solid #cbd5e1">Earnings</th>
-            <th colspan="2" style="text-align:left;padding:8px 12px">Deductions</th>
-        </tr>
-        @php
-            $maxRows = max(count($earnings), count($deductions));
-            $earnings = array_values($earnings);
-            $deductions = array_values($deductions);
-        @endphp
-        @for($i = 0; $i < $maxRows; $i++)
-            <tr>
-                <td style="padding:5px 12px;border-bottom:1px solid #e2e8f0;border-right:1px solid #cbd5e1;width:30%">
-                    {{ $earnings[$i][0] ?? '' }}
-                </td>
-                <td style="padding:5px 12px;border-bottom:1px solid #e2e8f0;border-right:1px solid #cbd5e1;text-align:right;width:20%">
-                    @if(isset($earnings[$i]))&#8377;{{ number_format($earnings[$i][1], 2) }}@endif
-                </td>
-                <td style="padding:5px 12px;border-bottom:1px solid #e2e8f0;width:30%">
-                    {{ $deductions[$i][0] ?? '' }}
-                </td>
-                <td style="padding:5px 12px;border-bottom:1px solid #e2e8f0;text-align:right;width:20%">
-                    @if(isset($deductions[$i]))&#8377;{{ number_format($deductions[$i][1], 2) }}@endif
-                </td>
-            </tr>
-        @endfor
-        <tr style="background:#FEF2F2;font-weight:bold">
-            <td style="padding:8px 12px;border-right:1px solid #cbd5e1">Gross Earnings</td>
-            <td style="padding:8px 12px;border-right:1px solid #cbd5e1;text-align:right">&#8377;{{ number_format((float)$payslip->gross_earnings, 2) }}</td>
-            <td style="padding:8px 12px">Total Deductions</td>
-            <td style="padding:8px 12px;text-align:right">&#8377;{{ number_format((float)$payslip->total_deductions, 2) }}</td>
+    {{-- ===== Bottom totals row ===== --}}
+    <table style="width:100%;border-collapse:collapse;border-top:1px solid #000;font-size:13px">
+        <tr style="background:#f1f5f9;font-weight:bold">
+            <td style="padding:8px 12px;border-right:1px solid #000;width:34%">
+                Payable Days &nbsp;&nbsp; <span style="display:inline-block;float:right;font-weight:bold">{{ number_format($payableDays, 1) }}</span>
+            </td>
+            <td style="padding:8px 12px;border-right:1px solid #000;width:33%">
+                GROSS SALARY &nbsp;&nbsp; <span style="display:inline-block;float:right;font-weight:bold">{{ $fmt($payslip->gross_earnings) }}</span>
+            </td>
+            <td style="padding:8px 12px;width:33%">
+                NET PAY &nbsp;&nbsp; <span style="display:inline-block;float:right;font-weight:bold;color:#000">{{ $fmt($payslip->net_pay) }}</span>
+            </td>
         </tr>
     </table>
 
-    {{-- Net Pay --}}
-    <div style="background:#16A34A;color:#fff;padding:14px 20px;text-align:center">
-        <div style="font-size:13px;opacity:0.9">NET PAY</div>
-        <div style="font-size:24px;font-weight:bold;letter-spacing:1px">&#8377; {{ number_format((float)$payslip->net_pay, 2) }}</div>
-        <div style="font-size:11px;opacity:0.95;margin-top:3px;font-style:italic">{{ rupeesInWords((float)$payslip->net_pay) }}</div>
+    {{-- ===== Disclaimer footer ===== --}}
+    <div style="padding:8px 12px;font-size:10.5px;font-weight:bold">
+        Computer Generated Pay Slip Not Required Any Signature.
     </div>
 
     @if((float) ($payslip->ot_amount ?? 0) > 0)
-        <div style="padding:8px 20px;font-size:11px;background:#FEF3C7;border-top:1px solid #FCD34D;color:#92400E;text-align:center">
-            <strong>Note:</strong> Overtime of ₹{{ number_format((float)$payslip->ot_amount, 2) }} for this period is paid separately via the Incentive Register (not part of the above net pay).
+        <div style="padding:6px 12px;font-size:10px;background:#FEF3C7;border-top:1px solid #FCD34D;color:#92400E">
+            <strong>Note:</strong> Overtime of ₹{{ $fmt($payslip->ot_amount) }} for this period is paid separately via the Incentive Register (not part of the above net pay).
         </div>
     @endif
-
-    {{-- Footer --}}
-    <div style="padding:10px 20px;font-size:10px;color:#64748B;text-align:center;border-top:1px solid #e2e8f0">
-        This is a computer-generated payslip. No signature required.
-        Generated on {{ optional($payslip->generated_at)->format('d M Y') ?? now()->format('d M Y') }} ·
-        Run: {{ $payslip->run->run_code ?? '—' }}
-    </div>
 </div>

@@ -28,12 +28,12 @@
         <div class="card p-5">
             <h2 class="font-bold mb-3">Payslip — {{ \DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}</h2>
             <table class="grid-tbl">
-                <tr><th>Basic</th><td>&#8377;{{ number_format($payslip->basic, 2) }}</td></tr>
-                <tr><th>HRA</th><td>&#8377;{{ number_format($payslip->hra, 2) }}</td></tr>
-                <tr><th>DA</th><td>&#8377;{{ number_format($payslip->da, 2) }}</td></tr>
-                <tr><th>Special Allowance</th><td>&#8377;{{ number_format($payslip->spl_allow, 2) }}</td></tr>
-                <tr><th>Gross Earnings</th><td><strong>&#8377;{{ number_format($payslip->gross_earnings, 2) }}</strong></td></tr>
-                <tr><th>Net Pay</th><td><strong style="color:var(--brand)">&#8377;{{ number_format($payslip->net_pay ?? 0, 2) }}</strong></td></tr>
+                <tr><th>Basic</th><td>&#8377;{{ number_format($payslip->basic, 0) }}</td></tr>
+                <tr><th>HRA</th><td>&#8377;{{ number_format($payslip->hra, 0) }}</td></tr>
+                <tr><th>DA</th><td>&#8377;{{ number_format($payslip->da, 0) }}</td></tr>
+                <tr><th>Special Allowance</th><td>&#8377;{{ number_format($payslip->spl_allow, 0) }}</td></tr>
+                <tr><th>Gross Earnings</th><td><strong>&#8377;{{ number_format($payslip->gross_earnings, 0) }}</strong></td></tr>
+                <tr><th>Net Pay</th><td><strong style="color:var(--brand)">&#8377;{{ number_format($payslip->net_pay ?? 0, 0) }}</strong></td></tr>
             </table>
         </div>
     @elseif($empId)

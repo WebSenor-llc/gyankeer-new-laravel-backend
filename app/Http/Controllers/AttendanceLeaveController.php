@@ -11,6 +11,22 @@ use Illuminate\Http\Request;
 
 class AttendanceLeaveController extends Controller
 {
+    /**
+     * Map an emp_type filter value to all aliases stored in the DB.
+     * Different seeders/imports historically stored employee_type as either
+     * the short code ('WK', 'SB', 'ST') or the full label ('Worker',
+     * 'Sub-Staff', 'Staff'). This helper makes filters tolerant of both.
+     */
+    protected function expandEmpType(string $val): array
+    {
+        return match (strtolower(trim($val))) {
+            'wk', 'worker', 'w', 'l', 'labour', 'labor'      => ['WK', 'wk', 'Worker', 'worker', 'W', 'L', 'Labour', 'labour'],
+            'sb', 'sub-staff', 'substaff', 'sub_staff', 'ss' => ['SB', 'sb', 'Sub-Staff', 'sub-staff', 'SubStaff', 'Sub Staff'],
+            'st', 'staff'                                    => ['ST', 'st', 'Staff', 'staff'],
+            default                                          => [$val],
+        };
+    }
+
     public function daily(Request $req)
     {
         $date = $req->input('date', today()->toDateString());
@@ -408,14 +424,51 @@ class AttendanceLeaveController extends Controller
     }
 
     /**
-     * Workers-only Quick Counts — auto-filters to employee_type='WK' and adds
-     * a Contractor (Salary Group) dropdown. Workers are linked to a contractor
-     * via salary_group_id (e.g. "Contractor - Lehar Singh Kitawat").
+     * Workers-only Quick Counts — auto-filters to worker employee types and
+     * adds a Contractor (Salary Group) dropdown. Workers are linked to a
+     * contractor via salary_group_id (e.g. "Contractor - Lehar Singh Kitawat").
+     *
+     * Accepts BOTH 'WK' (legacy short code) and 'Worker' (current Excel-import
+     * value) — see EmployeeImportSeeder typeLabel mapping.
      */
     public function countsWorkers(Request $req)
     {
-        $req->merge(['emp_type' => 'WK', '_workers_only' => 1]);
+        $req->merge(['emp_type' => 'Worker', '_workers_only' => 1]);
         return $this->counts($req);
+    }
+
+    /**
+     * Move a worker (or any employee) to a different salary group.
+     * Used by the inline "Move" button on /attendance/counts-workers.
+     * Logs old/new group on the salary_group_id update; bypasses the model
+     * to dodge any cast issues.
+     */
+    public function moveWorker(Request $req)
+    {
+        $req->validate([
+            'emp_id'              => 'required|integer',
+            'new_salary_group_id' => 'required|integer',
+        ]);
+
+        $emp = Employee::with('salary_group')->where('emp_id', $req->emp_id)->first();
+        if (!$emp) return back()->with('status', '❌ Employee not found.');
+
+        $newGroup = \App\Models\SalaryGroup::find($req->new_salary_group_id);
+        if (!$newGroup) return back()->with('status', '❌ Target salary group not found.');
+
+        $oldGroupName = $emp->salary_group->salary_group_name ?? '—';
+        $oldGroupId   = $emp->salary_group_id;
+
+        // Raw DB update — bypass model casts/observers to avoid silent failures
+        \Illuminate\Support\Facades\DB::table('employees')
+            ->where('emp_id', $req->emp_id)
+            ->update([
+                'salary_group_id' => $req->new_salary_group_id,
+                'updated_at'      => now(),
+            ]);
+
+        return back()->with('status',
+            "✅ Moved {$emp->full_name} ({$emp->emp_id}) from [{$oldGroupId}] {$oldGroupName} → [{$newGroup->salary_group_id}] {$newGroup->salary_group_name}.");
     }
 
     /**
@@ -438,26 +491,123 @@ class AttendanceLeaveController extends Controller
         }
 
         $empQ = Employee::with(['department','salary_group'])->where('active_flag', true);
-        if ($cid) $empQ->where('company_id', $cid);
+
+        // Search behaviour:
+        //   1. Find the matching employees (name/ID/TP/father — case-insensitive).
+        //   2. Expand the result to ALL employees in those matches' contractors,
+        //      so HR can edit attendance for the whole team in one view.
         if ($req->filled('q')) {
-            $q = $req->q;
-            $empQ->where(function ($w) use ($q) {
-                $w->where('full_name', 'like', "%$q%")->orWhere('emp_id', 'like', "%$q%");
-            });
+            $q = trim((string) $req->q);
+            $matchingGroupIds = Employee::where('active_flag', true)
+                ->when($req->filled('emp_type'), fn($x) => $x->whereIn('employee_type', $this->expandEmpType($req->emp_type)))
+                ->where(function ($w) use ($q) {
+                    $w->whereRaw('LOWER(full_name) LIKE ?',         ['%'.strtolower($q).'%'])
+                      ->orWhere('emp_id', 'like', "%$q%")
+                      ->orWhere('third_party_code', 'like', "%$q%")
+                      ->orWhereRaw('LOWER(fathers_name) LIKE ?',    ['%'.strtolower($q).'%']);
+                })
+                ->pluck('salary_group_id')->filter()->unique()->values()->all();
+
+            if (count($matchingGroupIds) === 0) {
+                // No matches at all — return empty paginator
+                $empQ->whereRaw('1 = 0');
+            } else {
+                $empQ->whereIn('salary_group_id', $matchingGroupIds);
+                if ($req->filled('emp_type')) $empQ->whereIn('employee_type', $this->expandEmpType($req->emp_type));
+            }
+        } else {
+            // No search → apply all the dropdown filters INCLUDING active company.
+            // The header company switcher must scope every page to that company.
+            if ($cid)                            $empQ->where('company_id', $cid);
+            if ($req->filled('dept_id'))         $empQ->where('dept_id', $req->dept_id);
+            if ($req->filled('emp_type'))        $empQ->whereIn('employee_type', $this->expandEmpType($req->emp_type));
+            if ($req->filled('salary_group_id')) $empQ->where('salary_group_id', $req->salary_group_id);
         }
-        if ($req->filled('dept_id'))         $empQ->where('dept_id', $req->dept_id);
-        if ($req->filled('emp_type'))        $empQ->where('employee_type', $req->emp_type);
-        if ($req->filled('salary_group_id')) $empQ->where('salary_group_id', $req->salary_group_id);
-        $employees = $empQ->orderBy('emp_id')->paginate(100)->appends($req->query());
+        // Sort by salary_group_id first so contractor's workers stay together
+        $employees = $empQ->orderBy('salary_group_id')->orderBy('emp_id')->paginate(200)->appends($req->query());
+
+        // Set workers-only flag NOW so debug block can reference it
+        $workersOnly = $req->boolean('_workers_only');
+
+        // ── ?debug=1 — dumps exactly what the search produced. Add this query
+        //    string to ANY counts URL to see the diagnosis inline. ──
+        if ($req->boolean('debug')) {
+            $debugQ = $req->q;
+            $matches = !empty($debugQ)
+                ? Employee::where('active_flag', true)
+                    ->when($req->filled('emp_type'), fn($x) => $x->whereIn('employee_type', $this->expandEmpType($req->emp_type)))
+                    ->where(function ($w) use ($debugQ) {
+                        $lc = strtolower(trim((string) $debugQ));
+                        $w->whereRaw('LOWER(full_name) LIKE ?', ["%$lc%"])
+                          ->orWhere('emp_id', 'like', "%$debugQ%")
+                          ->orWhere('third_party_code', 'like', "%$debugQ%")
+                          ->orWhereRaw('LOWER(fathers_name) LIKE ?', ["%$lc%"]);
+                    })
+                    ->get(['emp_id','full_name','employee_type','active_flag','salary_group_id','company_id'])
+                : collect();
+
+            // Diagnostic — what's actually in the employees table?
+            $totalEmps    = Employee::count();
+            $activeEmps   = Employee::where('active_flag', true)->count();
+            $typeBreakdown = Employee::selectRaw('employee_type, COUNT(*) as cnt')
+                ->groupBy('employee_type')->orderByDesc('cnt')->get();
+            $sampleWorker = Employee::whereIn(\Illuminate\Support\Facades\DB::raw('LOWER(employee_type)'), ['wk','w','worker','labour','labor','contract'])
+                ->first(['emp_id','full_name','employee_type','active_flag','salary_group_id']);
+            // Workers identified via salary_group (Contractor groups)
+            $contractorIds = \App\Models\SalaryGroup::where('salary_group_name','like','%ontractor%')
+                ->orWhere('salary_group_name','like','%abour%')
+                ->pluck('salary_group_id')->all();
+            $viaGroupCount = $contractorIds
+                ? Employee::whereIn('salary_group_id', $contractorIds)->where('active_flag', true)->count()
+                : 0;
+
+            return response('<pre style="font-family:monospace;font-size:13px;padding:20px;line-height:1.5">'
+                . "🔍 DEBUG — counts() search\n\n"
+                . "Request:\n"
+                . "  q (search)         : " . var_export($req->q, true) . "\n"
+                . "  emp_type           : " . var_export($req->emp_type, true) . "\n"
+                . "  salary_group_id    : " . var_export($req->salary_group_id, true) . "\n"
+                . "  _workers_only flag : " . var_export($workersOnly, true) . "\n"
+                . "  active_company_id  : {$cid}\n"
+                . "  year/month         : {$year}/{$month}\n\n"
+                . "Database state:\n"
+                . "  Total employees    : {$totalEmps}\n"
+                . "  Active employees   : {$activeEmps}\n"
+                . "  Workers via Contractor salary_group (active_flag=true) : {$viaGroupCount}\n\n"
+                . "Distinct employee_type values in DB (with row counts):\n"
+                . $typeBreakdown->map(fn($t) => "  → " . var_export($t->employee_type, true) . " : {$t->cnt} row(s)")->implode("\n") . "\n\n"
+                . ($sampleWorker
+                    ? "Sample worker-like employee:\n"
+                      . "  → emp_id={$sampleWorker->emp_id} '{$sampleWorker->full_name}'\n"
+                      . "    employee_type=" . var_export($sampleWorker->employee_type, true)
+                      . " active=" . ($sampleWorker->active_flag?'Y':'N')
+                      . " group_id={$sampleWorker->salary_group_id}\n\n"
+                    : "❌ NO worker-like rows found by employee_type fuzzy match.\n\n")
+                . "Direct match query (active_flag + emp_type='WK' + name LIKE q):\n"
+                . "  Returned " . $matches->count() . " row(s)\n"
+                . $matches->map(fn($e) => "    → emp_id={$e->emp_id} '{$e->full_name}' "
+                                       . "type={$e->employee_type} active=" . ($e->active_flag?'Y':'N')
+                                       . " group_id={$e->salary_group_id} company_id={$e->company_id}")->implode("\n") . "\n\n"
+                . "Page query result: " . $employees->total() . " total row(s) (page " . $employees->currentPage() . ")\n"
+                . $employees->map(fn($e) => "    → {$e->emp_id} {$e->full_name} (group={$e->salary_group_id})")->implode("\n") . "\n\n"
+                . "─────────────────────────────────────────────\n"
+                . "DIAGNOSIS:\n"
+                . "  • If 'employee_type' breakdown shows a value other than 'WK' (e.g. 'Worker', 'wk', 'WORKER'),\n"
+                . "    that's the mismatch. The page filters strictly for 'WK'.\n"
+                . "  • If everyone is 'ST' or no 'WK' shown, your seeders set them differently.\n"
+                . "</pre>'");
+        }
 
         // Contractor list for the workers-only page (salary groups whose name
-        // starts with "Contractor"). Scoped to the active company.
-        $workersOnly = $req->boolean('_workers_only');
+        // starts with "Contractor"). Scoped to active company so only the
+        // current company's contractors / labour groups appear in the dropdown.
         $contractors = $workersOnly
             ? \App\Models\SalaryGroup::when($cid, fn($q) => $q->where('company_id', $cid))
                 ->where(function ($q) {
                     $q->where('salary_group_name', 'like', 'Contractor%')
-                      ->orWhere('salary_group_name', 'like', '%Contarctor%');     // tolerate seeded typo
+                      ->orWhere('salary_group_name', 'like', '%Contarctor%')      // tolerate seeded typo
+                      ->orWhere('salary_group_name', 'like', '%Labour%')          // BSK -Company Labour
+                      ->orWhere('salary_group_name', 'like', '%Labor%');
                 })
                 ->orderBy('salary_group_name')->get()
             : collect();
@@ -484,6 +634,7 @@ class AttendanceLeaveController extends Controller
                     'pl' => (float) $s->pl_count,
                     'a'  => (float) $s->a_count,
                     'hd' => (float) $s->hd_count,
+                    'ph' => (float) ($s->ph_count ?? 0),
                     'ot' => (float) $s->ot_hours,
                 ];
             }
@@ -499,7 +650,7 @@ class AttendanceLeaveController extends Controller
                 ->get()
                 ->groupBy('emp_id');
             foreach ($rowsByEmp as $empIdKey => $rows) {
-                $c = ['p'=>0,'w'=>0,'cl'=>0,'sl'=>0,'pl'=>0,'a'=>0,'hd'=>0,'ot'=>0];
+                $c = ['p'=>0,'w'=>0,'cl'=>0,'sl'=>0,'pl'=>0,'a'=>0,'hd'=>0,'ph'=>0,'ot'=>0];
                 foreach ($rows as $r) {
                     $s = strtolower((string) $r->status);
                     if ($s === 'present')        $c['p']++;
@@ -535,6 +686,7 @@ class AttendanceLeaveController extends Controller
                     'pl' => 0,
                     'a'  => 0,
                     'hd' => 0,
+                    'ph' => 0,
                     'ot' => 0,
                 ];
             }
@@ -582,13 +734,14 @@ class AttendanceLeaveController extends Controller
             $pl = (float) ($cfg['pl'] ?? 0);
             $a  = (float) ($cfg['a']  ?? 0);
             $hd = (float) ($cfg['hd'] ?? 0);
+            $ph = (float) ($cfg['ph'] ?? 0);
             $ot = (float) ($cfg['ot'] ?? 0);
 
             // If totally empty row, skip
-            if (($p + $w + $cl + $sl + $pl + $a + $hd) <= 0) continue;
+            if (($p + $w + $cl + $sl + $pl + $a + $hd + $ph) <= 0) continue;
 
             // Validate total — allow tiny float drift
-            $sum = round($p + $w + $cl + $sl + $pl + $a + $hd, 2);
+            $sum = round($p + $w + $cl + $sl + $pl + $a + $hd + $ph, 2);
             if (abs($sum - $totalDays) > 0.001) {
                 $errors[] = "Emp {$empId} ({$emp->full_name}): total = {$sum}, expected {$totalDays}";
                 continue;
@@ -598,21 +751,25 @@ class AttendanceLeaveController extends Controller
             //    so reloading this page shows 25.5 / 4 / 0.5 verbatim, not a
             //    re-derived approximation.
             if (\Illuminate\Support\Facades\Schema::hasTable('attendance_summary')) {
+                $payload = [
+                    'company_id'  => $emp->company_id,
+                    'p_count'     => $p,
+                    'w_count'     => $w,
+                    'cl_count'    => $cl,
+                    'sl_count'    => $sl,
+                    'pl_count'    => $pl,
+                    'a_count'     => $a,
+                    'hd_count'    => $hd,
+                    'ot_hours'    => $ot,
+                    'total_days'  => $sum,
+                    'created_by_user_id' => auth()->id(),
+                ];
+                if (\Illuminate\Support\Facades\Schema::hasColumn('attendance_summary', 'ph_count')) {
+                    $payload['ph_count'] = $ph;
+                }
                 \App\Models\AttendanceSummary::updateOrCreate(
                     ['emp_id' => $emp->emp_id, 'period_year' => $year, 'period_month' => $month],
-                    [
-                        'company_id'  => $emp->company_id,
-                        'p_count'     => $p,
-                        'w_count'     => $w,
-                        'cl_count'    => $cl,
-                        'sl_count'    => $sl,
-                        'pl_count'    => $pl,
-                        'a_count'     => $a,
-                        'hd_count'    => $hd,
-                        'ot_hours'    => $ot,
-                        'total_days'  => $sum,
-                        'created_by_user_id' => auth()->id(),
-                    ]
+                    $payload
                 );
             }
 
@@ -743,14 +900,26 @@ class AttendanceLeaveController extends Controller
             $employeesProcessed++;
         }
 
-        $msg = "Saved counts for {$employeesProcessed} employees ({$totalCells} day-cells written).";
+        $rowsReceived = count($rows);
+        $msg = "✅ Saved counts for {$employeesProcessed} of {$rowsReceived} employees ({$totalCells} day-cells written).";
         if (!empty($errors)) {
             $msg .= ' Skipped ' . count($errors) . ' rows with mismatched totals: ' . implode('; ', array_slice($errors, 0, 3))
                   . (count($errors) > 3 ? '...' : '');
         }
-        return redirect()
-            ->route('attendance.counts', ['year' => $year, 'month' => $month])
-            ->with('status', $msg);
+        if ($rowsReceived === 0) {
+            $msg = "⚠️ Form submitted but NO row data received. Check the form's input fields are named row[empId][p], row[empId][w], etc.";
+        }
+
+        // Preserve the page context the user came from (workers vs all)
+        $cameFromWorkers = $req->input('_workers_only') || str_contains((string) $req->header('referer', ''), 'counts-workers');
+        $routeName = $cameFromWorkers ? 'attendance.counts-workers' : 'attendance.counts';
+        $routeParams = ['year' => $year, 'month' => $month];
+        // Preserve filters (salary_group_id, q, dept_id) so the user lands back on the same view
+        if ($req->filled('salary_group_id')) $routeParams['salary_group_id'] = $req->salary_group_id;
+        if ($req->filled('q'))               $routeParams['q']               = $req->q;
+        if ($req->filled('dept_id'))         $routeParams['dept_id']         = $req->dept_id;
+
+        return redirect()->route($routeName, $routeParams)->with('status', $msg);
     }
 
     public function viewReporting()

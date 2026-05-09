@@ -17,7 +17,7 @@
 </form>
     <div class="card p-4 mb-4" style="background:#FEF2F2;border-color:#FCA5A5">
         <div class="text-[11px] text-red-700 uppercase font-semibold">Total Disbursement</div>
-        <div class="text-2xl font-bold text-red-700">&#8377;{{ number_format($total, 2) }}</div>
+        <div class="text-2xl font-bold text-red-700">&#8377;{{ number_format($total, 0) }}</div>
     </div>
     <div class="card overflow-x-auto">
         <table class="grid-tbl">
@@ -29,7 +29,7 @@
                         <td>{{ $r->emp->bank_account_no ?? '—' }}</td>
                         <td>{{ $r->emp->bank_ifsc ?? '—' }}</td>
                         <td>{{ $r->emp->bank->bank_name ?? '—' }}</td>
-                        <td><strong>&#8377;{{ number_format($r->net_pay ?? 0, 2) }}</strong></td>
+                        <td><strong>&#8377;{{ number_format($r->net_pay ?? 0, 0) }}</strong></td>
                     </tr>
                 @empty
                     <tr><td colspan="5" class="text-center py-6 text-slate-500">No disbursements for this period.</td></tr>

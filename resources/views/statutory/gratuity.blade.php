@@ -24,7 +24,7 @@
                                 <span class="pill pill-warn">Not eligible</span>
                             @endif
                         </td>
-                        <td>&#8377;{{ number_format($r['amount'], 2) }}</td>
+                        <td>&#8377;{{ number_format($r['amount'], 0) }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="text-center py-6 text-slate-500">

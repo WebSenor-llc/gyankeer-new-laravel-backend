@@ -29,7 +29,7 @@
             <div class="text-3xl mb-1">💰</div>
             <div class="font-semibold mb-1">Latest Payslip</div>
             @if($latestPayslip)
-                <div class="text-xs text-slate-500">{{ \DateTime::createFromFormat('!m', $latestPayslip->period_month)->format('M') }} {{ $latestPayslip->period_year }} • Net &#8377;{{ number_format($latestPayslip->net_pay ?? 0, 2) }}</div>
+                <div class="text-xs text-slate-500">{{ \DateTime::createFromFormat('!m', $latestPayslip->period_month)->format('M') }} {{ $latestPayslip->period_year }} • Net &#8377;{{ number_format($latestPayslip->net_pay ?? 0, 0) }}</div>
             @else
                 <div class="text-xs text-slate-500">No payslip available yet</div>
             @endif

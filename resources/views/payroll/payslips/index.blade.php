@@ -29,8 +29,8 @@
 
     <div class="grid grid-cols-3 gap-3 mb-4">
         <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Payslips</div><div class="text-lg font-bold">{{ $totals['count'] }}</div></div>
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Gross</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['gross'], 2) }}</div></div>
-        <div class="card p-3" style="background:#F0FDF4;border-color:#86EFAC"><div class="text-[11px] text-green-700 uppercase font-semibold">Total Net Pay</div><div class="text-lg font-bold text-green-700">&#8377;{{ number_format($totals['net'], 2) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Gross</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['gross'], 0) }}</div></div>
+        <div class="card p-3" style="background:#F0FDF4;border-color:#86EFAC"><div class="text-[11px] text-green-700 uppercase font-semibold">Total Net Pay</div><div class="text-lg font-bold text-green-700">&#8377;{{ number_format($totals['net'], 0) }}</div></div>
     </div>
 
     <div class="card overflow-x-auto">
@@ -50,9 +50,9 @@
                         <td>{{ $p->emp->full_name ?? '—' }}</td>
                         <td>{{ $p->emp->department->dept_name ?? '—' }}</td>
                         <td>{{ $p->emp->salary_group->salary_group_name ?? '—' }}</td>
-                        <td class="text-right">&#8377;{{ number_format((float)$p->gross_earnings, 2) }}</td>
-                        <td class="text-right text-red-700">&#8377;{{ number_format((float)$p->total_deductions, 2) }}</td>
-                        <td class="text-right text-green-700"><strong>&#8377;{{ number_format((float)$p->net_pay, 2) }}</strong></td>
+                        <td class="text-right">&#8377;{{ number_format((float)$p->gross_earnings, 0) }}</td>
+                        <td class="text-right text-red-700">&#8377;{{ number_format((float)$p->total_deductions, 0) }}</td>
+                        <td class="text-right text-green-700"><strong>&#8377;{{ number_format((float)$p->net_pay, 0) }}</strong></td>
                         <td>
                             <span class="text-[10px] px-1.5 py-0.5 rounded font-semibold
                                 @if($p->disbursement_status === 'Paid')      bg-green-100 text-green-800

@@ -18,9 +18,9 @@
         <div class="card p-5">
             <h2 class="font-semibold mb-3">Annual Salary Summary (estimate)</h2>
             <table class="grid-tbl">
-                <tr><th>Gross Salary (Annual)</th><td>&#8377;{{ number_format(($emp->current_gross ?? 0) * 12, 2) }}</td></tr>
+                <tr><th>Gross Salary (Annual)</th><td>&#8377;{{ number_format(($emp->current_gross ?? 0) * 12, 0) }}</td></tr>
                 <tr><th>Standard Deduction</th><td>&#8377;50,000.00</td></tr>
-                <tr><th>Taxable Income (est.)</th><td>&#8377;{{ number_format(max(0, ($emp->current_gross ?? 0) * 12 - 50000), 2) }}</td></tr>
+                <tr><th>Taxable Income (est.)</th><td>&#8377;{{ number_format(max(0, ($emp->current_gross ?? 0) * 12 - 50000), 0) }}</td></tr>
                 <tr><th>Tax Regime</th><td>{{ $emp->tax_regime ?? 'New' }}</td></tr>
             </table>
             <p class="text-[11px] text-slate-400 mt-3">Form 16 PDF generation requires the laravel-dompdf package. Once installed, this page will render a downloadable Part A + Part B PDF.</p>

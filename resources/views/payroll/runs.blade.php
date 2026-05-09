@@ -29,9 +29,9 @@
                         <td>{{ \DateTime::createFromFormat('!m', $r->period_month)->format('M') }} {{ $r->period_year }}</td>
                         <td>{{ $r->company->company_name ?? ('#'.$r->company_id) }}</td>
                         <td>{{ (int) $r->eligible_emp_count }}</td>
-                        <td>&#8377;{{ number_format($r->total_earnings, 2) }}</td>
-                        <td>&#8377;{{ number_format($r->total_deductions, 2) }}</td>
-                        <td><strong>&#8377;{{ number_format($r->total_net_payout, 2) }}</strong></td>
+                        <td>&#8377;{{ number_format($r->total_earnings, 0) }}</td>
+                        <td>&#8377;{{ number_format($r->total_deductions, 0) }}</td>
+                        <td><strong>&#8377;{{ number_format($r->total_net_payout, 0) }}</strong></td>
                         <td>
                             @if($r->status === 'Posted')<span class="pill pill-ok">Posted</span>
                             @elseif($r->status === 'Approved')<span class="pill pill-info">Approved</span>

@@ -19,9 +19,9 @@
                         <td>{{ $l->emp_id }}</td>
                         <td>{{ $l->employee_name }}</td>
                         <td>{{ $l->loan_type ?? '—' }}</td>
-                        <td>&#8377;{{ number_format($l->principal, 2) }}</td>
-                        <td>&#8377;{{ number_format($l->outstanding_principal, 2) }}</td>
-                        <td>&#8377;{{ number_format($l->emi_amount, 2) }}</td>
+                        <td>&#8377;{{ number_format($l->principal, 0) }}</td>
+                        <td>&#8377;{{ number_format($l->outstanding_principal, 0) }}</td>
+                        <td>&#8377;{{ number_format($l->emi_amount, 0) }}</td>
                         <td>{{ $l->emi_amount > 0 ? round($l->outstanding_principal / $l->emi_amount) : '—' }}</td>
                         <td><span class="pill {{ $l->repayment_status === 'Closed' ? 'pill-ok' : 'pill-warn' }}">{{ $l->repayment_status }}</span></td>
                     </tr>

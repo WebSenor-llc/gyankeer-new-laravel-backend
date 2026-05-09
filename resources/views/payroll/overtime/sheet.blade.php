@@ -87,8 +87,8 @@
     <div class="grid grid-cols-4 gap-3 mb-4">
         <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">OT Entries</div><div class="text-lg font-bold">{{ $totals['count'] }}</div></div>
         <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total OT Hours</div><div class="text-lg font-bold">{{ number_format($totals['hours'], 2) }}</div></div>
-        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Amount</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['amount'], 2) }}</div></div>
-        <div class="card p-3" style="background:#F0FDF4;border-color:#86EFAC"><div class="text-[11px] text-green-700 uppercase font-semibold">Total Payable</div><div class="text-lg font-bold text-green-700">&#8377;{{ number_format($totals['payable'] ?? ($totals['amount'] - ($totals['esi'] ?? 0)), 2) }}</div></div>
+        <div class="card p-3"><div class="text-[11px] text-slate-500 uppercase">Total Amount</div><div class="text-lg font-bold">&#8377;{{ number_format($totals['amount'], 0) }}</div></div>
+        <div class="card p-3" style="background:#F0FDF4;border-color:#86EFAC"><div class="text-[11px] text-green-700 uppercase font-semibold">Total Payable</div><div class="text-lg font-bold text-green-700">&#8377;{{ number_format($totals['payable'] ?? ($totals['amount'] - ($totals['esi'] ?? 0)), 0) }}</div></div>
     </div>
 
     {{-- Mirrors SUGAM HR's "Incentive (Manual)" listing --}}
@@ -118,9 +118,9 @@
                         <td class="text-right">{{ rtrim(rtrim(number_format((float)$r->ot_hours, 2),'0'),'.') }}</td>
                         <td class="text-right">{{ rtrim(rtrim(number_format((float)$r->ot_rate, 2),'0'),'.') }}</td>
                         <td class="text-right">{{ number_format((float)($r->hourly_rate ?? 0), 2) }}</td>
-                        <td class="text-right">{{ number_format((float)$r->ot_amount, 2) }}</td>
+                        <td class="text-right">{{ number_format((float)$r->ot_amount, 0) }}</td>
                         <td class="text-right text-slate-400">—</td>
-                        <td class="text-right text-green-700"><strong>{{ number_format((float)$r->ot_amount, 2) }}</strong></td>
+                        <td class="text-right text-green-700"><strong>{{ number_format((float)$r->ot_amount, 0) }}</strong></td>
                         <td class="flex gap-1">
                             <a href="{{ route('overtime-sheet.create', ['emp_id'=>$r->emp_id,'year'=>$r->period_year,'month'=>$r->period_month]) }}" class="tb-btn" style="padding:2px 8px;font-size:11px">Edit</a>
                             <form method="POST" action="{{ route('overtime-sheet.destroy', $r->ot_id) }}" onsubmit="return confirm('Delete OT entry for {{ $r->emp->full_name ?? '' }}?')" class="inline">

@@ -23,31 +23,31 @@ $net    = $gross - $totDed;
         <div>
             <div class="font-semibold mb-2 text-sm">EARNINGS</div>
             <table class="grid-tbl text-sm">
-                <tr><td>Basic</td><td class="text-right">&#8377;{{ number_format($basic, 2) }}</td></tr>
-                <tr><td>HRA</td><td class="text-right">&#8377;{{ number_format($hra, 2) }}</td></tr>
-                <tr><td>DA</td><td class="text-right">&#8377;{{ number_format($da, 2) }}</td></tr>
-                <tr><td>Conveyance</td><td class="text-right">&#8377;{{ number_format($conv, 2) }}</td></tr>
-                <tr><td>Medical</td><td class="text-right">&#8377;{{ number_format($med, 2) }}</td></tr>
-                <tr><td>Special</td><td class="text-right">&#8377;{{ number_format($spl, 2) }}</td></tr>
-                <tr style="background:#FEF2F2"><th>Gross</th><th class="text-right">&#8377;{{ number_format($gross, 2) }}</th></tr>
+                <tr><td>Basic</td><td class="text-right">&#8377;{{ number_format($basic, 0) }}</td></tr>
+                <tr><td>HRA</td><td class="text-right">&#8377;{{ number_format($hra, 0) }}</td></tr>
+                <tr><td>DA</td><td class="text-right">&#8377;{{ number_format($da, 0) }}</td></tr>
+                <tr><td>Conveyance</td><td class="text-right">&#8377;{{ number_format($conv, 0) }}</td></tr>
+                <tr><td>Medical</td><td class="text-right">&#8377;{{ number_format($med, 0) }}</td></tr>
+                <tr><td>Special</td><td class="text-right">&#8377;{{ number_format($spl, 0) }}</td></tr>
+                <tr style="background:#FEF2F2"><th>Gross</th><th class="text-right">&#8377;{{ number_format($gross, 0) }}</th></tr>
             </table>
         </div>
         <div>
             <div class="font-semibold mb-2 text-sm">DEDUCTIONS</div>
             <table class="grid-tbl text-sm">
-                <tr><td>EPF (12%)</td><td class="text-right">&#8377;{{ number_format($pf, 2) }}</td></tr>
-                <tr><td>ESI (0.75%)</td><td class="text-right">&#8377;{{ number_format($esi, 2) }}</td></tr>
-                <tr><td>PT</td><td class="text-right">&#8377;{{ number_format($pt, 2) }}</td></tr>
-                <tr><td>LWF</td><td class="text-right">&#8377;{{ number_format($lwf, 2) }}</td></tr>
-                <tr><td>TDS</td><td class="text-right">&#8377;{{ number_format($tds, 2) }}</td></tr>
-                <tr style="background:#FEF2F2"><th>Total</th><th class="text-right">&#8377;{{ number_format($totDed, 2) }}</th></tr>
+                <tr><td>EPF (12%)</td><td class="text-right">&#8377;{{ number_format($pf, 0) }}</td></tr>
+                <tr><td>ESI (0.75%)</td><td class="text-right">&#8377;{{ number_format($esi, 0) }}</td></tr>
+                <tr><td>PT</td><td class="text-right">&#8377;{{ number_format($pt, 0) }}</td></tr>
+                <tr><td>LWF</td><td class="text-right">&#8377;{{ number_format($lwf, 0) }}</td></tr>
+                <tr><td>TDS</td><td class="text-right">&#8377;{{ number_format($tds, 0) }}</td></tr>
+                <tr style="background:#FEF2F2"><th>Total</th><th class="text-right">&#8377;{{ number_format($totDed, 0) }}</th></tr>
             </table>
         </div>
     </div>
     <div class="mt-3 p-3 rounded-lg" style="background:var(--brand);color:white">
         <div class="flex items-center justify-between">
             <span class="text-xs uppercase opacity-80">Net Pay (sample)</span>
-            <span class="text-xl font-bold">&#8377;{{ number_format($net, 2) }}</span>
+            <span class="text-xl font-bold">&#8377;{{ number_format($net, 0) }}</span>
         </div>
     </div>
 </div>

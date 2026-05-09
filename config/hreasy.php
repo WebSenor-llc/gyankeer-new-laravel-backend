@@ -14,6 +14,17 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Payroll wage rules
+    |--------------------------------------------------------------------------
+    | worker_divisor — for contract workers, daily salary = monthly ÷ this.
+    |                  Default 26 (excludes 4 Sundays in a typical month).
+    */
+    'payroll' => [
+        'worker_divisor' => env('HREASY_WORKER_DIVISOR', 26),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Provident Fund (EPF Act 1952)
     |--------------------------------------------------------------------------
     */

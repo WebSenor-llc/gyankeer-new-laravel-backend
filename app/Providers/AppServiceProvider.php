@@ -43,5 +43,41 @@ class AppServiceProvider extends ServiceProvider
     {
         \Illuminate\Pagination\Paginator::useTailwind();
         date_default_timezone_set(config('app.timezone', 'Asia/Kolkata'));
+
+        /**
+         * Frontend-only rupee formatter — rounds to whole rupees with Indian
+         * thousands grouping (₹1,44,105). Database values keep full decimals;
+         * only the displayed string is rounded.
+         *
+         * Usage in Blade:
+         *   @rupees($payslip->net_pay)            → ₹1,44,105
+         *   @rupees($payslip->net_pay, false)     → 1,44,105   (no symbol)
+         */
+        \Illuminate\Support\Facades\Blade::directive('rupees', function ($expression) {
+            return "<?php echo \\App\\Providers\\AppServiceProvider::formatRupees({$expression}); ?>";
+        });
+    }
+
+    /**
+     * Format a number as Indian-grouped whole-rupee string.
+     *   12345.67 → '₹12,346'
+     *   144105   → '₹1,44,105'
+     */
+    public static function formatRupees($value, bool $withSymbol = true): string
+    {
+        $rounded = (int) round((float) $value);
+        // Indian grouping: last 3 digits, then groups of 2
+        $sign = $rounded < 0 ? '-' : '';
+        $abs  = abs($rounded);
+        if ($abs < 1000) {
+            $formatted = (string) $abs;
+        } else {
+            $last3 = substr((string) $abs, -3);
+            $rest  = substr((string) $abs, 0, -3);
+            // Group remaining digits in 2s from the right
+            $rest  = preg_replace('/\B(?=(\d{2})+(?!\d))/', ',', $rest);
+            $formatted = $rest . ',' . $last3;
+        }
+        return ($withSymbol ? '₹' : '') . $sign . $formatted;
     }
 }
