@@ -66,13 +66,14 @@
 <div class="flex" style="min-height:calc(100vh - 50px)">
     <aside id="sidebar" class="sidebar w-64 bg-white border-r border-[var(--line)] overflow-y-auto shrink-0" style="max-height:calc(100vh - 50px);position:sticky;top:50px">
         @php
+            $isHrMaster   = request()->routeIs('companies.*','departments.*','designations.*','employees.*','exit-employees');
             $isStatutory  = request()->routeIs('statutory.*');
             $isAttendance = request()->routeIs('attendance.*','leave.*');
             $isReports    = request()->routeIs('reports.salary-sheet','reports.salary-slip','reports.hr-letters','reports.bank-sheet','reports.increment','reports.headcount','reports.exit');
         @endphp
         <nav class="py-2 text-[13px]">
-            <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 {{ request()->routeIs('dashboard') ? 'active' : '' }}">📊 Home / Dashboard</a>
-            <details open><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">HR — Master Config</summary>
+            <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 {{ request()->routeIs('dashboard') ? 'active' : '' }}">Home / Dashboard</a>
+            <details @if($isHrMaster) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">HR — Master Config</summary>
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('companies.index') }}"   class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('companies.*') ? 'active' : '' }}">Manage Company</a>
                     <a href="{{ route('departments.index') }}" class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('departments.*') ? 'active' : '' }}">Manage Departments</a>
@@ -83,19 +84,19 @@
             </details>
             <details open><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Payroll Config</summary>
                 <div class="pl-9 text-slate-600">
-                    <a href="{{ route('manage-salary.index') }}"      class="block py-1.5 hover:text-[var(--brand)] font-semibold text-[var(--brand)] {{ request()->routeIs('manage-salary.*') ? 'active' : '' }}">⚙️ Manage Salary (per Employee)</a>
+                    <a href="{{ route('manage-salary.index') }}"      class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('manage-salary.*') ? 'active' : '' }}">Manage Salary (per Employee)</a>
                     <a href="{{ route('salary-components.index') }}"  class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('salary-components.*') ? 'active' : '' }}">Salary Components</a>
                     <a href="{{ route('salary-groups.index') }}"      class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('salary-groups.*') ? 'active' : '' }}">Manage Salary Groups</a>
                     <a href="{{ route('banks.index') }}"              class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('banks.*') ? 'active' : '' }}">Manage Banks</a>
-                    <a href="{{ route('payroll.generate') }}"         class="block py-1.5 hover:text-[var(--brand)] font-semibold text-[var(--brand)] {{ request()->routeIs('payroll.generate') ? 'active' : '' }}">⚡ Salary Generation (by Group)</a>
-                    <a href="{{ route('payroll.payslips.index') }}"   class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('payroll.payslips.*') ? 'active' : '' }}">📄 Payslips</a>
+                    <a href="{{ route('payroll.generate') }}"         class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('payroll.generate') ? 'active' : '' }}">Salary Generation (by Group)</a>
+                    <a href="{{ route('payroll.payslips.index') }}"   class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('payroll.payslips.*') ? 'active' : '' }}">Payslips</a>
                     <a href="{{ route('payroll.runs.index') }}"       class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('payroll.runs.*') ? 'active' : '' }}">Salary Runs (history)</a>
                     <a href="{{ route('reports.complete-salary') }}"  class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('reports.complete-salary') ? 'active' : '' }}">Salary Simulation</a>
                     <a href="{{ route('incentives.index') }}"         class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('incentives.*') ? 'active' : '' }}">Incentives</a>
                     <a href="{{ route('arrears.index') }}"            class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('arrears.*') ? 'active' : '' }}">Arrears</a>
                     <a href="{{ route('deductions.listing') }}"       class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('deductions.*') ? 'active' : '' }}">Salary Deductions</a>
                     <a href="{{ route('payroll.transactions') }}"     class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('payroll.transactions') ? 'active' : '' }}">Salary Transactions</a>
-                    <a href="{{ route('overtime-sheet') }}"           class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('overtime-sheet') ? 'active' : '' }}">⏱️ Overtime Sheet</a>
+                    <a href="{{ route('overtime-sheet') }}"           class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('overtime-sheet') ? 'active' : '' }}">Overtime Sheet</a>
                 </div>
             </details>
             <details @if($isStatutory) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Statutory &amp; Compliance</summary>
@@ -115,8 +116,8 @@
             <details @if($isAttendance) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Attendance &amp; Leave</summary>
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('attendance.daily') }}"         class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.daily') ? 'active' : '' }}">Daily Attendance</a>
-                    <a href="{{ route('attendance.counts') }}"        class="block py-1.5 hover:text-[var(--brand)] font-semibold text-[var(--brand)] {{ request()->routeIs('attendance.counts') ? 'active' : '' }}">⚡ Quick Counts (SUGAM)</a>
-                    <a href="{{ route('attendance.counts-workers') }}" class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.counts-workers') ? 'active' : '' }}">👷 Workers (by Contractor)</a>
+                    <a href="{{ route('attendance.counts') }}"        class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.counts') ? 'active' : '' }}">Quick Counts (SUGAM)</a>
+                    <a href="{{ route('attendance.counts-workers') }}" class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.counts-workers') ? 'active' : '' }}">Workers (by Contractor)</a>
                     <a href="{{ route('attendance.grid') }}"          class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.grid') ? 'active' : '' }}">Bulk Attendance Grid</a>
                     <a href="{{ route('attendance.summary') }}"       class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.summary') ? 'active' : '' }}">Summary Entry (P/W/L)</a>
                     <a href="{{ route('attendance.manual') }}"        class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.manual') ? 'active' : '' }}">Manual Attendance</a>
