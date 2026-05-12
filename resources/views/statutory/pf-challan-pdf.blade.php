@@ -150,17 +150,17 @@
             @if($rows->count())
                 <tr class="totals">
                     <td colspan="3" class="c">TOTAL</td>
-                    <td class="r">{{ number_format($rows->sum('gross_wage'), 0) }}</td>
-                    <td class="r">{{ number_format($rows->sum('epf_wage_capped'), 0) }}</td>
-                    <td class="r">{{ number_format($rows->sum('eps_wage_capped'), 0) }}</td>
-                    <td class="r">{{ number_format($rows->sum('edli_wage_capped'), 0) }}</td>
+                    <td class="r">{{ number_format($totals['gross'], 0) }}</td>
+                    <td class="r">{{ number_format($totals['epf'], 0) }}</td>
+                    <td class="r">{{ number_format($totals['eps'], 0) }}</td>
+                    <td class="r">{{ number_format($rows->sum(fn($r) => round((float) $r->edli_wage_capped)), 0) }}</td>
                     <td class="r">{{ number_format($totals['ee'], 0) }}</td>
                     <td class="r">{{ number_format($totals['ee'], 0) }}</td>
                     <td class="r">{{ number_format($totals['eps_c'], 0) }}</td>
                     <td class="r">{{ number_format($totals['eps_c'], 0) }}</td>
                     <td class="r">{{ number_format($totals['er'], 0) }}</td>
                     <td class="r">{{ number_format($totals['er'], 0) }}</td>
-                    <td colspan="16" class="c">—</td>
+                    <td colspan="17" class="c">—</td>
                 </tr>
             @endif
         </tbody>
@@ -204,7 +204,7 @@
                 <td class="c">A/C 21 (EDLI)</td>
                 <td>Employees Deposit-Linked Insurance</td>
                 <td class="c">0.50</td>
-                <td class="r">{{ number_format(min($totals['epf'], $rows->count() * 15000), 0) }}</td>
+                <td class="r">{{ number_format($rows->sum(fn($r) => round((float) $r->edli_wage_capped)), 0) }}</td>
                 <td class="r">{{ number_format($totals['edli'], 0) }}</td>
             </tr>
             <tr>

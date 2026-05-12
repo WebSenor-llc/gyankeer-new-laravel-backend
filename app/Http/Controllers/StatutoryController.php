@@ -580,15 +580,18 @@ class StatutoryController extends Controller
             ->orderBy('emp_id')
             ->get();
 
+        // Round each row to whole rupees first, then sum — matches the Excel/CSV
+        // exporter (which writes integers per row). Sum-then-round drifts vs
+        // round-then-sum for the .50 paise produced by 8.33% / 3.67% × ₹15,000.
         $totals = [
-            'gross' => $rows->sum('gross_wage'),
-            'epf'   => $rows->sum('epf_wage_capped'),
-            'eps'   => $rows->sum('eps_wage_capped'),
-            'ee'    => $rows->sum('ee_share_12pct'),
-            'eps_c' => $rows->sum('eps_8_33'),
-            'er'    => $rows->sum('er_share_3_67'),
-            'edli'  => $rows->sum('edli_0_5'),
-            'admin' => $rows->sum('pf_admin_0_5'),
+            'gross' => $rows->sum(fn($r) => round((float) $r->gross_wage)),
+            'epf'   => $rows->sum(fn($r) => round((float) $r->epf_wage_capped)),
+            'eps'   => $rows->sum(fn($r) => round((float) $r->eps_wage_capped)),
+            'ee'    => $rows->sum(fn($r) => round((float) $r->ee_share_12pct)),
+            'eps_c' => $rows->sum(fn($r) => round((float) $r->eps_8_33)),
+            'er'    => $rows->sum(fn($r) => round((float) $r->er_share_3_67)),
+            'edli'  => $rows->sum(fn($r) => round((float) $r->edli_0_5)),
+            'admin' => $rows->sum(fn($r) => round((float) $r->pf_admin_0_5)),
         ];
         $totals['challan'] = $totals['ee'] + $totals['eps_c'] + $totals['er']
                            + $totals['edli'] + $totals['admin'];
