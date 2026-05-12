@@ -27,35 +27,60 @@ class SalaryRunController extends Controller
      */
     public function generate(Request $req)
     {
-        $cid     = (int) session('active_company_id', 0);
-        $companies     = Company::orderBy('company_name')->get();
-        $year    = (int) $req->input('year',  now()->year);
-        $month   = (int) $req->input('month', now()->month);
-        $companyId     = (int) $req->input('company_id', $cid);
-        $salaryGroupId = (int) $req->input('salary_group_id', 0);
+        $cid       = (int) session('active_company_id', 0);
+        $companies = Company::orderBy('company_name')->get();
+        $year      = (int) $req->input('year',  now()->year);
+        $month     = (int) $req->input('month', now()->month);
+        $companyId = (int) $req->input('company_id', $cid);
+
+        // Multi-select: salary_group_ids[] (+ back-compat for old singular salary_group_id)
+        $rawIds = $req->input('salary_group_ids', []);
+        if (!is_array($rawIds)) $rawIds = [$rawIds];
+        if ($req->filled('salary_group_id')) $rawIds[] = $req->input('salary_group_id');
+        $salaryGroupIds = collect($rawIds)
+            ->map(fn($v) => (int) $v)
+            ->filter(fn($v) => $v > 0)
+            ->unique()->values()->all();
+        $salaryGroupId = $salaryGroupIds[0] ?? 0; // legacy var
 
         // Salary groups for the picked company (or all if none)
         $salaryGroupsQ = \App\Models\SalaryGroup::query();
         if ($companyId) $salaryGroupsQ->where('company_id', $companyId);
         $salaryGroups = $salaryGroupsQ->orderBy('salary_group_name')->get();
 
-        // Employee preview list (only when "Get List" was clicked)
-        $employees = collect();
-        $previewLoaded = false;
-        if ($req->boolean('get_list') && $companyId && $salaryGroupId) {
-            $empQ = \App\Models\Employee::with(['department','salary_group'])
+        // Single-group export branch — kept compatible with existing per-group buttons
+        if ($req->input('export') && $companyId && $req->filled('salary_group_id')) {
+            $singleGid = (int) $req->input('salary_group_id');
+            $exportEmps = \App\Models\Employee::with(['department','salary_group'])
                 ->where('active_flag', true)
                 ->where('company_id', $companyId)
-                ->where('salary_group_id', $salaryGroupId);
-            // For exports, optionally narrow to a specific subset (the
-            // user-checked employees on the Salary Generation page).
-            $selectedEmpIds = $req->input('selected_emp_ids', []);
-            if ($req->input('export') && is_array($selectedEmpIds) && !empty($selectedEmpIds)) {
-                $empQ->whereIn('emp_id', $selectedEmpIds);
+                ->where('salary_group_id', $singleGid)
+                ->when($req->input('selected_emp_ids'),
+                       fn($q,$ids) => $q->whereIn('emp_id', (array) $ids))
+                ->orderBy('emp_id')->get();
+            if (in_array($req->input('export'), ['csv','xls'], true)) {
+                return $this->exportGroupSheet($req->input('export'), $exportEmps, $companyId, $singleGid, $year, $month);
             }
-            $employees = $empQ->orderBy('emp_id')->get();
+            if ($req->input('export') === 'pdf') {
+                return $this->exportGroupPdf($exportEmps, $companyId, $singleGid, $year, $month);
+            }
+        }
+
+        // Employee preview list (only when "Get List" was clicked)
+        $employees     = collect();
+        $previewLoaded = false;
+        if ($req->boolean('get_list') && $companyId && count($salaryGroupIds) > 0) {
+            $employees = \App\Models\Employee::with(['department','salary_group'])
+                ->where('active_flag', true)
+                ->where('company_id', $companyId)
+                ->whereIn('salary_group_id', $salaryGroupIds)
+                ->orderBy('emp_id')->get();
             $previewLoaded = true;
         }
+
+        $employeesByGroup = $employees->groupBy('salary_group_id');
+        $orderedGroups    = \App\Models\SalaryGroup::whereIn('salary_group_id', $salaryGroupIds)
+            ->orderBy('salary_group_name')->get()->keyBy('salary_group_id');
 
         // Already-generated payslips for this period (so the UI can show "already generated" badges)
         $existingPayslipEmps = collect();
@@ -66,17 +91,11 @@ class SalaryRunController extends Controller
             $existingPayslipEmps = Payslip::whereIn('run_id', $runIds)->pluck('emp_id')->unique();
         }
 
-        // CSV / Excel / PDF export of the picked group's payslip data
-        if ($previewLoaded && in_array($req->input('export'), ['csv','xls'], true)) {
-            return $this->exportGroupSheet($req->input('export'), $employees, $companyId, $salaryGroupId, $year, $month);
-        }
-        if ($previewLoaded && $req->input('export') === 'pdf') {
-            return $this->exportGroupPdf($employees, $companyId, $salaryGroupId, $year, $month);
-        }
-
         return view('payroll.generate', compact(
             'companies', 'salaryGroups', 'employees',
-            'companyId', 'salaryGroupId', 'year', 'month',
+            'companyId', 'salaryGroupId', 'salaryGroupIds',
+            'employeesByGroup', 'orderedGroups',
+            'year', 'month',
             'previewLoaded', 'existingPayslipEmps'
         ));
     }
@@ -400,28 +419,35 @@ class SalaryRunController extends Controller
             ->forceDelete();
 
         return redirect()->route('payroll.generate', [
-                'company_id'      => $req->company_id,
-                'salary_group_id' => $req->salary_group_id,
-                'year'            => $req->year,
-                'month'           => $req->month,
-                'get_list'        => 1,
+                'company_id'       => $req->company_id,
+                'salary_group_ids' => [(int) $req->salary_group_id],
+                'year'             => $req->year,
+                'month'            => $req->month,
+                'get_list'         => 1,
             ])->with('status', "🗑️ Deleted {$cnt} payslip(s) for {$g->salary_group_name}. Attendance, manual deductions, and overtime preserved — ready to regenerate.");
     }
 
     public function generateRun(Request $req)
     {
+        // Back-compat: accept old singular salary_group_id
+        if (!$req->has('salary_group_ids') && $req->filled('salary_group_id')) {
+            $req->merge(['salary_group_ids' => [$req->input('salary_group_id')]]);
+        }
+
         $req->validate([
-            'company_id'      => 'required|integer',
-            'salary_group_id' => 'required|integer',
-            'year'            => 'required|integer|between:2020,2030',
-            'month'           => 'required|integer|between:1,12',
-            'emp_ids'         => 'nullable|array',
-            'emp_ids.*'       => 'integer',
+            'company_id'         => 'required|integer',
+            'salary_group_ids'   => 'required|array|min:1',
+            'salary_group_ids.*' => 'integer',
+            'year'               => 'required|integer|between:2020,2030',
+            'month'              => 'required|integer|between:1,12',
+            'emp_ids'            => 'nullable|array',
+            'emp_ids.*'          => 'integer',
         ]);
 
         $companyId = $req->integer('company_id');
         $year      = $req->integer('year');
         $month     = $req->integer('month');
+        $groupIds  = array_values(array_unique(array_map('intval', $req->input('salary_group_ids', []))));
 
         // Find or create the run (one run per company × period)
         $run = SalaryRun::firstOrCreate(
@@ -441,15 +467,15 @@ class SalaryRunController extends Controller
         // Resolve which employees to compute for
         $empIds = $req->input('emp_ids', []);
         if (empty($empIds)) {
-            // No checkboxes? Fall back to ALL employees in the salary group
+            // No checkboxes? Fall back to ALL employees in the selected groups
             $empIds = \App\Models\Employee::where('active_flag', true)
                 ->where('company_id', $companyId)
-                ->where('salary_group_id', $req->integer('salary_group_id'))
+                ->whereIn('salary_group_id', $groupIds)
                 ->pluck('emp_id')->all();
         }
 
         if (empty($empIds)) {
-            return back()->with('status', 'No employees in the selected company × salary group.');
+            return back()->with('status', 'No employees in the selected company × salary group(s).');
         }
 
         // Wipe payslips for these employees in this run, then recompute fresh
@@ -458,20 +484,34 @@ class SalaryRunController extends Controller
         /** @var PayrollEngine $engine */
         $engine = app(PayrollEngine::class);
 
+        // Loop per-group for per-group messaging (single run row is shared)
+        $employees  = \App\Models\Employee::with('salary_group')->whereIn('emp_id', $empIds)->get();
+        $byGroup    = $employees->groupBy('salary_group_id');
+        $groupNames = \App\Models\SalaryGroup::whereIn('salary_group_id', $groupIds)
+            ->pluck('salary_group_name', 'salary_group_id');
+
         $generated = 0;
-        $skipped = [];
-        $employees = \App\Models\Employee::whereIn('emp_id', $empIds)->get();
-        foreach ($employees as $emp) {
-            if (!$emp->current_gross && !$emp->current_basic) {
-                $skipped[] = "{$emp->emp_id} (no salary data)";
-                continue;
+        $skipped   = [];
+        $messages  = [];
+        foreach ($groupIds as $gid) {
+            $gen = 0; $sk = [];
+            foreach ($byGroup->get($gid, collect()) as $emp) {
+                if (!$emp->current_gross && !$emp->current_basic) {
+                    $sk[] = "{$emp->emp_id} (no salary data)";
+                    continue;
+                }
+                try {
+                    $engine->computeForEmployee($emp, $run);
+                    $gen++;
+                } catch (\Throwable $ex) {
+                    $sk[] = "{$emp->emp_id} (" . substr($ex->getMessage(), 0, 50) . ")";
+                }
             }
-            try {
-                $engine->computeForEmployee($emp, $run);
-                $generated++;
-            } catch (\Throwable $ex) {
-                $skipped[] = "{$emp->emp_id} (" . substr($ex->getMessage(), 0, 50) . ")";
-            }
+            $generated += $gen;
+            $skipped    = array_merge($skipped, $sk);
+            $line = ($groupNames[$gid] ?? "Group {$gid}") . ": {$gen} generated";
+            if ($sk) $line .= " · skipped " . count($sk);
+            $messages[] = $line;
         }
 
         // Refresh the run's totals from current payslips
@@ -511,17 +551,17 @@ class SalaryRunController extends Controller
             'status'                   => $run->status === 'Posted' ? 'Posted' : 'Computed',
         ]);
 
-        $msg = "Generated {$generated} payslips for the salary group.";
+        $msg = "Generated {$generated} payslips — " . implode(' | ', $messages);
         if (!empty($skipped)) {
-            $msg .= " Skipped " . count($skipped) . ": " . implode(', ', array_slice($skipped, 0, 3))
+            $msg .= ". Skipped " . count($skipped) . ": " . implode(', ', array_slice($skipped, 0, 3))
                   . (count($skipped) > 3 ? ', …' : '');
         }
         return redirect()->route('payroll.generate', [
-                'company_id'      => $companyId,
-                'salary_group_id' => $req->integer('salary_group_id'),
-                'year'            => $year,
-                'month'           => $month,
-                'get_list'        => 1,
+                'company_id'       => $companyId,
+                'salary_group_ids' => $groupIds,
+                'year'             => $year,
+                'month'            => $month,
+                'get_list'         => 1,
             ])->with('status', $msg);
     }
 

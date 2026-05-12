@@ -27,14 +27,37 @@
                 </select>
             </div>
 
-            <div class="col-span-3">
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Salary Group :</label>
-                <select name="salary_group_id" required class="block w-full border border-[var(--line)] rounded p-2 text-sm">
-                    <option value="">— Select Group —</option>
-                    @foreach($salaryGroups as $g)
-                        <option value="{{ $g->salary_group_id }}" @selected($salaryGroupId == $g->salary_group_id)>{{ $g->salary_group_name }}</option>
+            {{-- Multi-select Salary Groups (custom Tailwind + vanilla JS) --}}
+            <div class="col-span-3 relative" id="sgWrap">
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Salary Groups :</label>
+                <button type="button" id="sgToggle"
+                        class="w-full border border-[var(--line)] rounded p-2 text-sm text-left bg-white flex items-center justify-between">
+                    <span id="sgLabel" class="truncate text-slate-700">— Select Groups —</span>
+                    <span class="text-slate-400 ml-2">▾</span>
+                </button>
+                <div id="sgPanel"
+                     class="hidden absolute z-30 left-0 right-0 mt-1 bg-white border border-[var(--line)] rounded shadow-lg max-h-72 overflow-y-auto">
+                    @if($salaryGroups->isEmpty())
+                        <div class="px-3 py-2 text-xs text-slate-500">No salary groups for this company.</div>
+                    @else
+                        <label class="flex items-center gap-2 px-3 py-2 border-b border-slate-100 bg-slate-50 text-sm font-semibold cursor-pointer">
+                            <input type="checkbox" id="sgAll"> Select All
+                        </label>
+                        @foreach($salaryGroups as $g)
+                            <label class="flex items-center gap-2 px-3 py-1.5 hover:bg-slate-50 text-sm cursor-pointer">
+                                <input type="checkbox" class="sgChk" value="{{ $g->salary_group_id }}"
+                                       data-label="{{ $g->salary_group_name }}"
+                                       @checked(in_array($g->salary_group_id, $salaryGroupIds ?? []))>
+                                <span>{{ $g->salary_group_name }}</span>
+                            </label>
+                        @endforeach
+                    @endif
+                </div>
+                <div id="sgHidden">
+                    @foreach($salaryGroupIds ?? [] as $sgid)
+                        <input type="hidden" name="salary_group_ids[]" value="{{ $sgid }}">
                     @endforeach
-                </select>
+                </div>
             </div>
 
             <div class="col-span-3">
@@ -63,86 +86,42 @@
                 <button type="submit" class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C;color:#fff">Get List</button>
                 <button type="button" onclick="document.getElementById('genForm').submit()" class="tb-btn primary" style="background:#16A34A;border-color:#15803D;color:#fff" @disabled(!$previewLoaded)>Generate Salary</button>
                 @if($previewLoaded && $employees->isNotEmpty())
-                    <button type="button" onclick="exportSelected('csv')"
-                            class="tb-btn primary" style="background:#16A34A;border-color:#15803D">⬇ Export CSV</button>
-                    <button type="button" onclick="exportSelected('xls')"
-                            class="tb-btn primary" style="background:#0EA5E9;border-color:#0284C7">⬇ Export Excel</button>
-                    <button type="button" onclick="exportSelected('pdf')"
-                            class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C">⬇ Export PDF</button>
-                    @if($existingPayslipEmps->isNotEmpty())
-                        <button type="button" onclick="document.getElementById('deleteModal').style.display='flex'"
-                                class="tb-btn primary" style="background:#7C2D12;border-color:#7C2D12;color:#fff">🗑️ Delete Payroll</button>
-                    @endif
                     <a href="{{ route('payroll.runs.index') }}" class="tb-btn">View Runs</a>
                 @endif
             </div>
         </form>
     </div>
 
-    {{-- Employee list (preview after Get List) --}}
+    {{-- Employee list (preview after Get List) — one card per salary group --}}
     @if($previewLoaded)
         <form method="POST" action="{{ route('payroll.generate.run') }}" id="genForm">
             @csrf
-            <input type="hidden" name="company_id"      value="{{ $companyId }}">
-            <input type="hidden" name="salary_group_id" value="{{ $salaryGroupId }}">
-            <input type="hidden" name="year"            value="{{ $year }}">
-            <input type="hidden" name="month"           value="{{ $month }}">
+            <input type="hidden" name="company_id" value="{{ $companyId }}">
+            <input type="hidden" name="year"       value="{{ $year }}">
+            <input type="hidden" name="month"      value="{{ $month }}">
+            @foreach($salaryGroupIds as $sgid)
+                <input type="hidden" name="salary_group_ids[]" value="{{ $sgid }}">
+            @endforeach
 
-            <div class="card overflow-x-auto">
-                <table class="grid-tbl text-xs">
-                    <thead>
-                        <tr style="background:#FEF2F2">
-                            <th style="width:36px"><input type="checkbox" id="checkAll" onclick="toggleAll(this)" checked></th>
-                            <th>Emp ID</th>
-                            <th>Name</th>
-                            <th>Department</th>
-                            <th>Salary Group</th>
-                            <th class="text-right">Gross (₹)</th>
-                            <th>Bank A/C</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($employees as $e)
-                            <tr>
-                                <td><input type="checkbox" name="emp_ids[]" value="{{ $e->emp_id }}" class="empChk" checked></td>
-                                <td>{{ $e->emp_id }}</td>
-                                <td>{{ $e->full_name }}</td>
-                                <td>{{ $e->department->dept_name ?? '—' }}</td>
-                                <td>{{ $e->salary_group->salary_group_name ?? '—' }}</td>
-                                <td class="text-right">{{ number_format((float)$e->current_gross, 0) }}</td>
-                                <td class="text-xs text-slate-500">{{ $e->bank_account_no ?: '—' }}</td>
-                                <td>
-                                    @if($existingPayslipEmps->contains($e->emp_id))
-                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold">PAYSLIP EXISTS</span>
-                                        <a href="{{ route('payroll.payslips.show', [$e->emp_id, $year, $month]) }}"
-                                           class="ml-1 text-[10px] text-[var(--brand)] underline font-semibold">View →</a>
-                                    @else
-                                        <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 font-semibold">NEW</span>
-                                    @endif
-                                </td>
-                            </tr>
-                        @empty
-                            <tr><td colspan="8" class="text-center py-6 text-slate-500">No active employees in this company × salary group.</td></tr>
-                        @endforelse
-                    </tbody>
-                    @if($employees->isNotEmpty())
-                        <tfoot>
-                            <tr style="background:#F1F5F9;font-weight:600">
-                                <td></td>
-                                <td colspan="4">Total: {{ $employees->count() }} employees</td>
-                                <td class="text-right">₹{{ number_format($employees->sum(fn($e) => (float)$e->current_gross), 0) }}</td>
-                                <td colspan="2"></td>
-                            </tr>
-                        </tfoot>
-                    @endif
-                </table>
-            </div>
+            @forelse($orderedGroups as $gid => $group)
+                @include('payroll.partials.generate_group_card', [
+                    'group'               => $group,
+                    'employees'           => $employeesByGroup[$gid] ?? collect(),
+                    'companyId'           => $companyId,
+                    'year'                => $year,
+                    'month'               => $month,
+                    'existingPayslipEmps' => $existingPayslipEmps,
+                ])
+            @empty
+                <div class="card p-6 text-center text-slate-500 text-sm">
+                    No active employees in the selected company × salary group(s).
+                </div>
+            @endforelse
 
             @if($employees->isNotEmpty())
                 <div class="sticky bottom-0 z-10 bg-white border-t border-[var(--line)] py-3 px-4 mt-3 flex justify-between items-center">
                     <div class="text-xs text-slate-500">
-                        <span id="countSelected">{{ $employees->count() }}</span> of {{ $employees->count() }} selected ·
+                        <span id="countSelected">{{ $employees->count() }}</span> of {{ $employees->count() }} selected across {{ $orderedGroups->count() }} group(s) ·
                         Period: {{ \DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}
                     </div>
                     <button type="submit" class="tb-btn primary" style="background:#16A34A;border-color:#15803D;color:#fff;font-size:14px;padding:10px 22px">▶ Generate Salary for Selected</button>
@@ -151,27 +130,27 @@
         </form>
     @else
         <div class="card p-6 text-center text-slate-500 text-sm">
-            Pick a Company, Salary Group and Month above, then click <strong>Get List</strong> to preview employees.
+            Pick a Company, one or more Salary Groups and Month above, then click <strong>Get List</strong> to preview employees.
         </div>
     @endif
 </div>
 
-{{-- Delete Payroll modal — appears only when group has existing payslips --}}
-@if($previewLoaded && $employees->isNotEmpty() && $existingPayslipEmps->isNotEmpty())
-<div id="deleteModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;align-items:center;justify-content:center">
+{{-- Delete Payroll modal — populated per-group via openDeleteModal(gid) --}}
+@if($previewLoaded)
+<div id="deleteModal" class="hidden fixed inset-0 z-50 bg-black/50 items-center justify-center" style="align-items:center;justify-content:center">
     <form method="POST" action="{{ route('payroll.generate.delete') }}" onsubmit="return confirm('This will hard-delete every payslip in this group for the selected month. Continue?')"
           style="background:#fff;padding:24px;border-radius:8px;max-width:480px;width:92%;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
         @csrf
         <input type="hidden" name="company_id"      value="{{ $companyId }}">
-        <input type="hidden" name="salary_group_id" value="{{ $salaryGroupId }}">
+        <input type="hidden" name="salary_group_id" id="deleteGroupId" value="">
         <input type="hidden" name="year"            value="{{ $year }}">
         <input type="hidden" name="month"           value="{{ $month }}">
 
         <div class="flex items-center gap-3 mb-3">
             <span style="font-size:32px">🗑️</span>
             <div>
-                <h2 class="text-lg font-bold text-red-700">Delete Payroll</h2>
-                <p class="text-xs text-slate-500">{{ $existingPayslipEmps->count() }} payslip(s) for this group will be permanently deleted.</p>
+                <h2 class="text-lg font-bold text-red-700">Delete Payroll — <span id="deleteGroupName"></span></h2>
+                <p class="text-xs text-slate-500">All payslips for this group × period will be permanently deleted.</p>
             </div>
         </div>
 
@@ -181,67 +160,112 @@
         </div>
 
         <label class="block text-xs font-semibold text-slate-700 mb-1">Confirm with your password :</label>
-        <input type="password" name="password" required autofocus
+        <input type="password" name="password" required
                class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm mb-4"
                placeholder="Your account password"
                autocomplete="current-password">
 
         <div class="flex justify-end gap-2">
-            <button type="button" onclick="document.getElementById('deleteModal').style.display='none'"
-                    class="tb-btn">Cancel</button>
-            <button type="submit" class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C">
-                🗑️ Delete {{ $existingPayslipEmps->count() }} Payslip(s)
-            </button>
+            <button type="button" onclick="closeDeleteModal()" class="tb-btn">Cancel</button>
+            <button type="submit" class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C">🗑️ Delete</button>
         </div>
     </form>
 </div>
 @endif
 
 <script>
-function toggleAll(master) {
-    document.querySelectorAll('.empChk').forEach(cb => cb.checked = master.checked);
-    refreshCount();
-}
-function refreshCount() {
-    const total    = document.querySelectorAll('.empChk').length;
-    const selected = document.querySelectorAll('.empChk:checked').length;
-    const el = document.getElementById('countSelected');
-    if (el) el.textContent = selected;
-}
-document.querySelectorAll('.empChk').forEach(cb => cb.addEventListener('change', refreshCount));
+// ===== Multi-select dropdown =====
+(function () {
+    const wrap = document.getElementById('sgWrap');
+    if (!wrap) return;
+    const toggle = document.getElementById('sgToggle'),
+          panel  = document.getElementById('sgPanel'),
+          label  = document.getElementById('sgLabel'),
+          all    = document.getElementById('sgAll'),
+          hidden = document.getElementById('sgHidden'),
+          boxes  = Array.from(document.querySelectorAll('.sgChk'));
 
-/**
- * Build an export URL that includes ONLY the checked employees.
- * If everyone is checked, omit the selected_emp_ids[] params (smaller URL).
- */
-function exportSelected(format) {
-    const checked = Array.from(document.querySelectorAll('.empChk:checked')).map(cb => cb.value);
-    const total   = document.querySelectorAll('.empChk').length;
-
-    if (checked.length === 0) {
-        alert('Please check at least one employee to export.');
-        return;
+    function syncLabel() {
+        const picked = boxes.filter(b => b.checked);
+        if (!picked.length) {
+            label.textContent = '— Select Groups —';
+            if (all) all.checked = false;
+            return;
+        }
+        const names = picked.map(b => b.dataset.label);
+        label.textContent = names.length <= 2
+            ? names.join(', ')
+            : names.slice(0,2).join(', ') + ' (+' + (names.length - 2) + ' more)';
+        if (all) all.checked = picked.length === boxes.length;
     }
+    function syncHidden() {
+        hidden.innerHTML = '';
+        boxes.filter(b => b.checked).forEach(b => {
+            const i = document.createElement('input');
+            i.type = 'hidden'; i.name = 'salary_group_ids[]'; i.value = b.value;
+            hidden.appendChild(i);
+        });
+    }
+    toggle.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.toggle('hidden'); });
+    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) panel.classList.add('hidden'); });
+    if (all) all.addEventListener('change', () => { boxes.forEach(b => b.checked = all.checked); syncLabel(); syncHidden(); });
+    boxes.forEach(b => b.addEventListener('change', () => { syncLabel(); syncHidden(); }));
+    syncLabel();
+})();
 
-    const base = "{{ route('payroll.generate') }}";
+// ===== Per-group employee selection =====
+function toggleGroup(master, gid) {
+    document.querySelectorAll('.empChk-' + gid).forEach(cb => cb.checked = master.checked);
+    refreshCount(gid);
+}
+function refreshCount(gid) {
+    if (gid) {
+        const sel = document.querySelectorAll('.empChk-' + gid + ':checked').length;
+        const el  = document.querySelector('.grpCount-' + gid);
+        if (el) el.textContent = sel;
+    }
+    const total = document.getElementById('countSelected');
+    if (total) total.textContent = document.querySelectorAll('.empChk:checked').length;
+}
+document.querySelectorAll('.empChk').forEach(cb => {
+    cb.addEventListener('change', () => refreshCount(cb.dataset.groupId));
+});
+
+// ===== Per-group export =====
+function exportSelected(format, gid) {
+    const checked = Array.from(document.querySelectorAll('.empChk-' + gid + ':checked')).map(cb => cb.value);
+    const total   = document.querySelectorAll('.empChk-' + gid).length;
+    if (!checked.length) { alert('Please check at least one employee to export.'); return; }
     const params = new URLSearchParams({
         company_id:      "{{ $companyId }}",
-        salary_group_id: "{{ $salaryGroupId }}",
+        salary_group_id: gid,
         year:            "{{ $year }}",
         month:           "{{ $month }}",
         get_list:        "1",
         export:          format,
     });
-    // Only attach selected_emp_ids[] when the selection is a subset
-    if (checked.length < total) {
-        checked.forEach(id => params.append('selected_emp_ids[]', id));
-    }
-    const url = base + '?' + params.toString();
-    if (format === 'pdf') {
-        window.open(url, '_blank');
-    } else {
-        window.location = url;
-    }
+    if (checked.length < total) checked.forEach(id => params.append('selected_emp_ids[]', id));
+    const url = "{{ route('payroll.generate') }}?" + params.toString();
+    if (format === 'pdf') window.open(url, '_blank'); else window.location = url;
+}
+
+// ===== Per-group delete modal =====
+window.__groupNames = @json(($orderedGroups ?? collect())->mapWithKeys(fn($g, $k) => [$k => $g->salary_group_name]));
+function openDeleteModal(gid) {
+    const idEl = document.getElementById('deleteGroupId');
+    const nmEl = document.getElementById('deleteGroupName');
+    if (idEl) idEl.value = gid;
+    if (nmEl) nmEl.textContent = window.__groupNames[gid] || '';
+    const m = document.getElementById('deleteModal');
+    if (!m) return;
+    m.classList.remove('hidden'); m.classList.add('flex');
+    m.style.display = 'flex';
+}
+function closeDeleteModal() {
+    const m = document.getElementById('deleteModal');
+    if (!m) return;
+    m.classList.add('hidden'); m.classList.remove('flex');
+    m.style.display = 'none';
 }
 </script>
 @endsection
