@@ -22,7 +22,7 @@ return new class extends Migration {
             $table->string('member_name')->nullable();
             $table->string('dispensary')->nullable();
             $table->decimal('gross_wage', 15, 2)->default(0);
-            $table->integer('days_worked')->nullable();
+            $table->decimal('days_worked', 5, 1)->nullable();
             $table->string('ee_0_75')->nullable();
             $table->string('er_3_25')->nullable();
             $table->decimal('total_contribution', 15, 2)->default(0);

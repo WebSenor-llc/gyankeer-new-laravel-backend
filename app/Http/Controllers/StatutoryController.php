@@ -252,7 +252,7 @@ class StatutoryController extends Controller
                 'ip_no'        => $p->emp->esi_ip_no ?? '',
                 'member_name'  => $p->emp->full_name ?? '',
                 'gross_wage'   => (float) $p->gross_earnings,
-                'days_worked'  => (int) round((float) $p->payable_days),
+                'days_worked'  => round((float) $p->payable_days, 1),
                 'ee_0_75'      => (float) $p->esi_emp,
                 'er_3_25'      => (float) $p->employer_esi,
                 'total_contribution' => (float) $p->esi_emp + (float) $p->employer_esi,
@@ -718,7 +718,7 @@ class StatutoryController extends Controller
                 $data[] = [
                     $r->ip_no ?? ($e->esi_ip_no ?? ''),
                     $r->member_name ?? ($e->full_name ?? ''),
-                    $r->days_worked ?? 0,
+                    (int) round((float) ($r->days_worked ?? 0)),
                     (int) round((float) ($r->gross_wage ?? 0)),
                     '-----',
                     $exitDate,

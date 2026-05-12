@@ -25,6 +25,7 @@ class EsiRecord extends Model
     protected $casts = [
         'payment_date' => 'date',
         'created_at' => 'datetime',
+        'days_worked' => 'decimal:1',
     ];
 
     public function company(): BelongsTo
