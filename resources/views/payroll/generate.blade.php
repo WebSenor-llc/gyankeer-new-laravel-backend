@@ -84,7 +84,17 @@
 
             <div class="col-span-12 flex gap-2 mt-1 flex-wrap">
                 <button type="submit" class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C;color:#fff">Get List</button>
-                <button type="button" onclick="document.getElementById('genForm').submit()" class="tb-btn primary" style="background:#16A34A;border-color:#15803D;color:#fff" @disabled(!$previewLoaded)>Generate Salary</button>
+                <button type="button" onclick="document.getElementById('genForm').submit()" class="tb-btn primary"
+                        style="background:#16A34A;border-color:#15803D;color:#fff"
+                        @disabled(!$previewLoaded || !$salaryGroupId)
+                        title="{{ $salaryGroupId ? 'Generate salary for the picked group' : 'Pick a specific salary group first, or use Generate ALL Groups' }}">
+                    Generate Salary (selected group)
+                </button>
+                <button type="button" onclick="generateAllGroups()" class="tb-btn primary"
+                        style="background:#7C3AED;border-color:#6D28D9;color:#fff"
+                        title="Skip group selection — run payroll for every salary group of this company × month in one click.">
+                    ⚡ Generate ALL Groups
+                </button>
                 @if($previewLoaded && $employees->isNotEmpty())
                     <a href="{{ route('payroll.runs.index') }}" class="tb-btn">View Runs</a>
                 @endif
@@ -173,59 +183,54 @@
 </div>
 @endif
 
+{{-- Hidden form used by "Generate ALL Groups" — submits to /payroll/generate/all
+     with the company_id + year + month picked above, without needing a salary group. --}}
+<form method="POST" action="{{ route('payroll.generate.all') }}" id="genAllForm" style="display:none">
+    @csrf
+    <input type="hidden" name="company_id" id="genAllCompanyId">
+    <input type="hidden" name="year"       id="genAllYear">
+    <input type="hidden" name="month"      id="genAllMonth">
+</form>
+
 <script>
-// ===== Multi-select dropdown =====
-(function () {
-    const wrap = document.getElementById('sgWrap');
-    if (!wrap) return;
-    const toggle = document.getElementById('sgToggle'),
-          panel  = document.getElementById('sgPanel'),
-          label  = document.getElementById('sgLabel'),
-          all    = document.getElementById('sgAll'),
-          hidden = document.getElementById('sgHidden'),
-          boxes  = Array.from(document.querySelectorAll('.sgChk'));
+/**
+ * Skip group selection — fire payroll for every salary group of the picked
+ * company × month in one shot. Picks values straight from the picker form.
+ */
+function generateAllGroups() {
+    const picker = document.getElementById('pickerForm');
+    const companyId = picker.querySelector('[name=company_id]').value;
+    const month     = picker.querySelector('[name=month]').value;
+    const year      = picker.querySelector('[name=year]').value;
 
-    function syncLabel() {
-        const picked = boxes.filter(b => b.checked);
-        if (!picked.length) {
-            label.textContent = '— Select Groups —';
-            if (all) all.checked = false;
-            return;
-        }
-        const names = picked.map(b => b.dataset.label);
-        label.textContent = names.length <= 2
-            ? names.join(', ')
-            : names.slice(0,2).join(', ') + ' (+' + (names.length - 2) + ' more)';
-        if (all) all.checked = picked.length === boxes.length;
+    if (!companyId) {
+        alert('Please pick a Company first.');
+        return;
     }
-    function syncHidden() {
-        hidden.innerHTML = '';
-        boxes.filter(b => b.checked).forEach(b => {
-            const i = document.createElement('input');
-            i.type = 'hidden'; i.name = 'salary_group_ids[]'; i.value = b.value;
-            hidden.appendChild(i);
-        });
-    }
-    toggle.addEventListener('click', (e) => { e.stopPropagation(); panel.classList.toggle('hidden'); });
-    document.addEventListener('click', (e) => { if (!wrap.contains(e.target)) panel.classList.add('hidden'); });
-    if (all) all.addEventListener('change', () => { boxes.forEach(b => b.checked = all.checked); syncLabel(); syncHidden(); });
-    boxes.forEach(b => b.addEventListener('change', () => { syncLabel(); syncHidden(); }));
-    syncLabel();
-})();
 
-// ===== Per-group employee selection =====
-function toggleGroup(master, gid) {
-    document.querySelectorAll('.empChk-' + gid).forEach(cb => cb.checked = master.checked);
-    refreshCount(gid);
+    const monthLabel = picker.querySelector('[name=month] option:checked').textContent;
+    const ok = confirm(
+        `Generate salary for ALL salary groups of this company for ${monthLabel} ${year}?\n\n` +
+        `This wipes any existing payslips for these employees in this period and recomputes from scratch. ` +
+        `Manual deductions, attendance, and OT records are preserved.`
+    );
+    if (!ok) return;
+
+    document.getElementById('genAllCompanyId').value = companyId;
+    document.getElementById('genAllYear').value      = year;
+    document.getElementById('genAllMonth').value     = month;
+    document.getElementById('genAllForm').submit();
 }
-function refreshCount(gid) {
-    if (gid) {
-        const sel = document.querySelectorAll('.empChk-' + gid + ':checked').length;
-        const el  = document.querySelector('.grpCount-' + gid);
-        if (el) el.textContent = sel;
-    }
-    const total = document.getElementById('countSelected');
-    if (total) total.textContent = document.querySelectorAll('.empChk:checked').length;
+
+function toggleAll(master) {
+    document.querySelectorAll('.empChk').forEach(cb => cb.checked = master.checked);
+    refreshCount();
+}
+function refreshCount() {
+    const total    = document.querySelectorAll('.empChk').length;
+    const selected = document.querySelectorAll('.empChk:checked').length;
+    const el = document.getElementById('countSelected');
+    if (el) el.textContent = selected;
 }
 document.querySelectorAll('.empChk').forEach(cb => {
     cb.addEventListener('change', () => refreshCount(cb.dataset.groupId));

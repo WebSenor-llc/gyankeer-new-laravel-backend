@@ -1,0 +1,467 @@
+emp_id,name,salary_group,year,month,cl,pl,sl
+14033,"Narayan Singh Rajput","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20008,Dinesh,"Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20009,"Laxman Singh","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20011,"Mohanlal Bhil","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20012,"Ganpat Singh Kitawat","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20013,"Mahendra Singh","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20015,"Parwat Singh Kitawat","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20043,"Hari Singh","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20093,"Kailash Lal Gameti","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20100,"Prem Singh","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20339,"Madan lal Gaduliya Lohar","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20583,"Lal Singh","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20584,"Mohan Lal Gadri","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20585,"Narayan Singh Kitawat","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20586,"Kailash Chandr Gayari","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20602,"Govind SIngh Rathore","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20603,"Basanti Lal Meghwal","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+20604,"Rajmal Meghwal","Contractor - Lehar Singh Kitawat",2026,4,0,0,0
+14004,"Ramesh Chandra Gurjar","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14005,"Devi Lal Meghwal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14006,"Sukh Lal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14007,"Hari Ram Megawal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14009,"Babu Lal Megwal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14022,"Harishankar Purohit","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14023,"Madhu Lal Meghawal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14024,"Pushkar Lal Megwal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14025,"Mohan Lal Meghwal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14028,"Raju Lal Meghwal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14029,"Pawan Kumar Meghwal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+14030,"Dayaram Gurjar","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+20020,"Bhima Ram Meghwal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+20026,"Surendra Singh","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+20027,"Bheru Lal Megwal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+20109,Rajmal,"Contractor - Nathu Lal Vyas",2026,4,0,0,0
+20524,"Uday Singh","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+20529,"Kamlesh Meghwal","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+20530,"Surendra Singh Kitawat","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+20533,"Mangu Singh Rajput","Contractor - Nathu Lal Vyas",2026,4,0,0,0
+20061,"kishan Singh Chundawat","Contractor - Narayan Nath",2026,4,0,0,0
+20120,"Babu Lal Gameti","Contractor - Narayan Nath",2026,4,0,0,0
+20128,"Mathura Lal Gameti","Contractor - Narayan Nath",2026,4,0,0,0
+20132,"Shanti Lal Teli","Contractor - Narayan Nath",2026,4,0,0,0
+20138,"Ramesh Bhill","Contractor - Narayan Nath",2026,4,0,0,0
+20143,"Manohar Singh","Contractor - Narayan Nath",2026,4,0,0,0
+20147,Rupa,"Contractor - Narayan Nath",2026,4,0,0,0
+20149,"Kelash Gameti","Contractor - Narayan Nath",2026,4,0,0,0
+20150,"Shyam Lal","Contractor - Narayan Nath",2026,4,0,0,0
+20178,"Prem Lal","Contractor - Narayan Nath",2026,4,0,0,0
+20186,"Shankar Lal Bhil","Contractor - Narayan Nath",2026,4,0,0,0
+20188,"Ratan Lal","Contractor - Narayan Nath",2026,4,0,0,0
+20454,"Bheru singh","Contractor - Narayan Nath",2026,4,0,0,0
+300055,"Mangi Lal","Contractor - Narayan Nath",2026,4,0,0,0
+20060,"Laxman lal","Contractor - Hari Singh Kitawat",2026,4,0,0,0
+20123,"Heema Bhil","Contractor - Hari Singh Kitawat",2026,4,0,0,0
+20181,"Kishan Lal Bhil","Contractor - Hari Singh Kitawat",2026,4,0,0,0
+20190,"Ray Singh Madrecha","Contractor - Hari Singh Kitawat",2026,4,0,0,0
+20313,"Giver Singh Kitawat","Contractor - Hari Singh Kitawat",2026,4,0,0,0
+20381,"Kishan Singh Sisodiya","Contractor - Hari Singh Kitawat",2026,4,0,0,0
+20059,"Gopal Singh  Kitawat","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20066,"Shetan Singh Chouhan","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20067,"Pravat Singh","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20068,"Dalla Lal Gameti","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20069,"Ratan Lal","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20072,"Ram Lal Gameti","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20075,"Sohan Lal Bhil","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20076,"Gamer Singh","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20077,Khuma,"Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20153,"Dinesh Chandra Meena","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+20177,"Sajjan Singh Kitawat","Contractor - Lal Singh Kitawat",2026,4,0,0,0
+14001,"Parvat Singh","Contarctor - Nathu Singh",2026,4,0,0,0
+14002,"Mahendra Singh Kitawat","Contarctor - Nathu Singh",2026,4,0,0,0
+14011,"Prithvi Singh","Contarctor - Nathu Singh",2026,4,0,0,0
+14013,"Govardhan Singh","Contarctor - Nathu Singh",2026,4,0,0,0
+14015,"Devilal Jat","Contarctor - Nathu Singh",2026,4,0,0,0
+14016,"Nresh Dass Veshnav","Contarctor - Nathu Singh",2026,4,0,0,0
+14019,"Kalyan Singh","Contarctor - Nathu Singh",2026,4,0,0,0
+14044,"Manohar Singh","Contarctor - Nathu Singh",2026,4,0,0,0
+14045,"Shiv Lal Gameti","Contarctor - Nathu Singh",2026,4,0,0,0
+14046,"Bhagwat Singh Kitawat","Contarctor - Nathu Singh",2026,4,0,0,0
+20105,"Surendra Singh","Contarctor - Nathu Singh",2026,4,0,0,0
+20107,"Kanhaiya Lal Gayari","Contarctor - Nathu Singh",2026,4,0,0,0
+20262,"Shankar Lal Dangi","Contarctor - Nathu Singh",2026,4,0,0,0
+20266,"Madan Singh","Contarctor - Nathu Singh",2026,4,0,0,0
+20355,"Bhagwat Singh Padiyar","Contarctor - Nathu Singh",2026,4,0,0,0
+20523,"Vikram Singh Jhala","Contarctor - Nathu Singh",2026,4,0,0,0
+20528,"Manohar Nai","Contarctor - Nathu Singh",2026,4,0,0,0
+20550,"Mohan Lal Jat","Contarctor - Nathu Singh",2026,4,0,0,0
+20587,"Hitesh  Lal Bhil","Contarctor - Nathu Singh",2026,4,0,0,0
+20588,"Jorawar Singh Chundawat","Contarctor - Nathu Singh",2026,4,0,0,0
+20589,"Madhav Lal Keer","Contarctor - Nathu Singh",2026,4,0,0,0
+20590,"Shambhu Singh Rajput","Contarctor - Nathu Singh",2026,4,0,0,0
+300089,"Kesar Singh","Contarctor - Nathu Singh",2026,4,0,0,0
+20044,"Udai lal Gujar","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20045,"Heera Lal Gujar","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20046,"Kalyan Singh","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20047,"Kishan Lal","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20048,"Maganaram Gameti","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20050,"Ganpat Lal","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20051,"Satyanarayan Singh","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20052,"Bhanwar Lal Gujar","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20053,"Prakash Gadri","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20054,"Prithvi Raj Gadri","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20055,"Heera Lal Bhill","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20056,"Suresh Das Vaiiragi","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20176,"Ram Singh","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20303,"Shankar Lal Gadari","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20304,"Dulle Singh Kitawat","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20306,"Devi Lal Gayari","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20307,"Madan Singh Kitawat","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20308,"Bheru Singh","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20309,"Chena Lal Gameti","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20310,"Devender Singh Rathor","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20311,"Kishan Singh Mojawat","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20374,"Shobha Lal Bhil","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20379,"Virendra Singh Chohan","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20380,"Bhairu lal Jat","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20385,"Himmat singh","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20465,"Mangu meghwal","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20467,"Raju Das","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20468,"Shankar lal Meghwal","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20469,"Shanti lal Gadri","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20470,"Dilip Teli","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20471,"Jaswant Gameti","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20472,"Kallu Lal","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20537,"Mahendra Singh","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20538,"Hari Singh","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20546,"Tulsi Ram Gayari","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20581,"Hem Raj","Contractor - Hir Singh Solanki",2026,4,0,0,0
+20582,"Kalu Gameti","Contractor - Hir Singh Solanki",2026,4,0,0,0
+13151,"Jitendra Singh Mojawat","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+13152,"Devi Shankar Meena","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20412,"Narottam Meghwal","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20415,"Udai Lal Tailor","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20416,"Bheru Lal Gayari","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20417,"Pravin Gameti","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20419,"Ratan Lal  Bhil","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20423,"Ratan Lal","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20428,"Gangadhar Bhill","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20430,Jagdish,"Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20433,"Devi Lal Meghwal","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20536,"Nirbhay Singh","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20547,"Prakesh Chandra Meena","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20579,"Chenram Salvi","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20580,"Bhanvar Lal","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20591,"Laxman Lal Gameti","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20593,"Bheru Singh","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20594,"Jodh SIngh Mojawat","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+300084,"Dinesh Chandr Bhil","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+300086,"Bhur Singh","Contractor -Gopal Lal Paliwal",2026,4,0,0,0
+20328,"Bhera Lal Gameti","Contractor -HemRaj Gujar",2026,4,0,0,0
+20330,"Damodar Lal","Contractor -HemRaj Gujar",2026,4,0,0,0
+20332,"Chunni Lal Gameti","Contractor -HemRaj Gujar",2026,4,0,0,0
+20368,"Prem Singh","Contractor -HemRaj Gujar",2026,4,0,0,0
+20369,"Kishan Singh Kitawat","Contractor -HemRaj Gujar",2026,4,0,0,0
+20370,"Prakash Darji","Contractor -HemRaj Gujar",2026,4,0,0,0
+20456,"Prem Singh","Contractor -HemRaj Gujar",2026,4,0,0,0
+20457,"Rup lal","Contractor -HemRaj Gujar",2026,4,0,0,0
+20458,"Shiv Singh Rathor","Contractor -HemRaj Gujar",2026,4,0,0,0
+20461,"Pratap Singh Solanki","Contractor -HemRaj Gujar",2026,4,0,0,0
+20462,"Kishan Singh Devda","Contractor -HemRaj Gujar",2026,4,0,0,0
+20463,"Fatah Singh","Contractor -HemRaj Gujar",2026,4,0,0,0
+20464,"Narendra Singh Jhala","Contractor -HemRaj Gujar",2026,4,0,0,0
+20435,"Bhanwar Lal Meghwal","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20436,"Laxman Singh Mojawat","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20438,"Devi Lal Gujar","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20442,"Bhuri Lal Gameti","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20443,"Raju Dangi","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20444,"Rajendra Singh","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20445,"Shiv Singh Mojawat","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20448,"Indra Singh","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20510,"Ram Lal Gadri","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20511,"Ganga Ram Gayari","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20512,"Uday Singh Solanki","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20555,"Rajendra Kumar","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20557,"Bhura Lal Kumawat","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20559,"Deepak Paliwal","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20560,"Bheru Singh","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20561,"Kesar Singh Solanki","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20562,"Bhagwat Singh","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20563,"Vinod Kumar Vaishnav","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20564,"Sohan Singh","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20565,"Karan Singh Kitawat","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20566,"Suresh Chandra Kumawat","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20567,"Sandeep Jinger","Contractor -Inder Singh Kitawat",2026,4,0,0,0
+20257,"Laxman Prjapat","XX- Contractor Bhanwar Singh Kitawat",2026,4,0,0,0
+20192,"Lalit Meghwal","Contractor Jagdish joshi",2026,4,0,0,0
+20193,"Prakash Chandra Soni","Contractor Jagdish joshi",2026,4,0,0,0
+20197,"Khim Singh  Kiitawat","Contractor Jagdish joshi",2026,4,0,0,0
+20201,"Ramesh Chandra Paliwal","Contractor Jagdish joshi",2026,4,0,0,0
+20203,"Meghraj Meghwal","Contractor Jagdish joshi",2026,4,0,0,0
+20205,"Bhur  Singh","Contractor Jagdish joshi",2026,4,0,0,0
+20208,"Naval Singh Rajput","Contractor Jagdish joshi",2026,4,0,0,0
+20209,"Naresh Lal Gameti","Contractor Jagdish joshi",2026,4,0,0,0
+20210,"Ganesh Lal","Contractor Jagdish joshi",2026,4,0,0,0
+20211,"Khem Raj Gujar","Contractor Jagdish joshi",2026,4,0,0,0
+20212,"Khuman Singh","Contractor Jagdish joshi",2026,4,0,0,0
+20213,"Prabh Lal Meghwal","Contractor Jagdish joshi",2026,4,0,0,0
+20214,"Rajesh Kumar Paliwal","Contractor Jagdish joshi",2026,4,0,0,0
+20217,"Kuka Ram Meghwal","Contractor Jagdish joshi",2026,4,0,0,0
+20218,"Murli Joshi","Contractor Jagdish joshi",2026,4,0,0,0
+20219,"Rajesh Sanadhya","Contractor Jagdish joshi",2026,4,0,0,0
+20221,"Devi Lal Gameti","Contractor Jagdish joshi",2026,4,0,0,0
+20223,"Lalit Meghwal","Contractor Jagdish joshi",2026,4,0,0,0
+20225,"Khem Raj Purohit","Contractor Jagdish joshi",2026,4,0,0,0
+20226,"Dinesh Soni","Contractor Jagdish joshi",2026,4,0,0,0
+20349,"Dinesh Meghwal","Contractor Jagdish joshi",2026,4,0,0,0
+20540,"Vinod Kumar Meghwal","Contractor Jagdish joshi",2026,4,0,0,0
+13155,"Goverdhan Singh Kitawat","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+14036,"Nirbhay Singh","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+14038,"Pratap Singh Solanki","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20111,"Gajendra Singh Kitawat","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20114,"Khuman Singh","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20115,"Mahendra Singh","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20118,"Puran Singh","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20215,"Kalu Singh Rathor","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20235,"Govind Singh","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20242,"Kishan Lal Meghwal","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20246,"Rajendra Singh  KItawat","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20319,"Sangram Singh Rajput","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20360,"Bansanti Lal Meghwal","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20606,"Laxman Singh Balla","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20607,"Champa Lal","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20608,"Lal Singh Kitawat","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+300096,"Rajendr Megval","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+300098,"Harish Keer","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+300099,"Gamer SIngh Solanki","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+300101,"Bhagavat Singh","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+300102,"Amar Singh Khrawad","Contractor Kishan Singh Kitawat",2026,4,0,0,0
+20421,"Gopal Paliwal","XX --- Contractor Laxman Lal Paliwal",2026,4,0,0,0
+14043,"Ratan Lal","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20108,"Prem Shankar Gameti","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20121,"Dinesh Bhil","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20124,"Kalu Lal","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20134,"Babu Lal","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20140,"Gopal lal","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20317,"Sohan Lal","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20376,Lachhu,"Contractor Manohar lal Paliwal",2026,4,0,0,0
+20382,"Bhagavan Lal","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20383,"Lahari Lal","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20384,"Champa Lal Bhil","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20474,"Chiman Lal","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20476,"Bhuri Lal","Contractor Manohar lal Paliwal",2026,4,0,0,0
+20477,Murali,"Contractor Manohar lal Paliwal",2026,4,0,0,0
+20499,"Chandan  Panwar","Contractor Mohan Singh Kitawat  House Keeping",2026,4,0,0,0
+20500,"Tara chand  Meena","Contractor Mohan Singh Kitawat  House Keeping",2026,4,0,0,0
+20501,"Jasraj Gameti","Contractor Mohan Singh Kitawat  House Keeping",2026,4,0,0,0
+20502,"Sohan Lal Gameti","Contractor Mohan Singh Kitawat  House Keeping",2026,4,0,0,0
+20503,"Rajiv Harijan","Contractor Mohan Singh Kitawat  House Keeping",2026,4,0,0,0
+20504,"Vijendra Singh Solanki","Contractor Mohan Singh Kitawat  House Keeping",2026,4,0,0,0
+300083,"Naresh Gayri","Contractor Mohan Singh Kitawat  House Keeping",2026,4,0,0,0
+20157,"Samarath Singh Jhala","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20158,"Mangi Lal Gayari","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20159,"Govind Lal Bheel","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20160,"Ramesh Kumar Bhil","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20161,"Vinod keer","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20162,"Dhanraj Gameti","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20163,"Chandra Prakash Bhil","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20164,"Mohan Lal","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20165,"Bhanwar LAL","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20166,"Vaali Ram Gameti","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20168,"Dinesh Chandr Bhil","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20169,"Jamna Lal Gameti","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20170,"Durga lal","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20171,"Durga Shankar","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20173,"Prakash Chandra Bhil","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20174,"Rod Singh","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20175,"Rupal Lal","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20272,"Om Prakesh Meena","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20273,"Dinesh Chanddra Nai","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20278,"Hukami Chandra","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20478,"Ganesh Lal Meena","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20479,"Ramesh meena","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20480,"Narayan Lal","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20482,"Shiv  Lal Gayari","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20483,"Hari Narayan Meena","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20484,"Mohan Gameti","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20485,"Kelash Gameti","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20486,"Kalu Ram Dangi","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20488,"Rup Lal Gayari","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20492,"Nemi Chand Jatiya","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20494,"Mangal  Bheel","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20495,"Vardi Chand Gameti","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20498,"Vishal Meena","Contractor Mohan Singh Kitawat  L",2026,4,0,0,0
+20388,"Badri Dan Charan","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20389,"Hari Singh","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20390,"Kalyan Singh Rathor","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20394,"Kishan Singh Kitawat","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20395,"Nathu Lal","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20398,"Kishan lal Bhil","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20403,"Bhanwar Singh","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20404,"Laher Singh Sosidya","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20406,"Narayan singh","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20407,"Rup Singh","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20408,"Miya Ram Gurjar","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20542,"Mahonhar Singh","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20543,"Prem Singh Rathore","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20574,"Anar Singh","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20576,"Vadan Singh","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20577,"Shiv Lal","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20578,"Nepal Singh","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20596,"Mahendra Singh Jhala","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20597,"Nathu SIngh Rathore","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20598,"Ratan SIngh Kitawat","Contractor Nahar Singh Kitawat",2026,4,0,0,0
+20065,"Kishan  Lal Rebari","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20078,"Jagdish Chandra Gujar","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20079,"Phatah Singh","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20081,"Bheru Singh","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20082,"Bheru Singh Mojawat","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20083,"Man Singh Kitawat","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20085,"Devi Singh","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20086,"Nathu Lal Lohar","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20122,"Gopal Singh","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20131,"Shanti Lal Gameti","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20179,"Manohar Singh","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20302,"Udai Lal  Rebari","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20314,"Tila Ram","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+20475,"Prakash Lal Gameti","Contractor-Goverdhan Singh Kitawati",2026,4,0,0,0
+13005,"Goverdhan Singh","GPPL - Sub. Staff -1",2026,4,0,0,0
+13009,"Prakash  Gameti","GPPL - Sub. Staff -1",2026,4,0,0,0
+13010,"Gopal meena","GPPL - Sub. Staff -1",2026,4,0,0,0
+13011,"Mahendra Singh Devada","GPPL - Sub. Staff -1",2026,4,0,0,0
+13012,"Sohan Lal Panwar","GPPL - Sub. Staff -1",2026,4,0,0,0
+13014,"Mukesh Kumar Jatiya","GPPL - Sub. Staff -1",2026,4,0,0,0
+13017,"Kan Singh Rathor","GPPL - Sub. Staff -1",2026,4,0,0,0
+13018,"Lal Singh Rathor","GPPL - Sub. Staff -1",2026,4,0,0,0
+13019,"Durgashankar Meghwal","GPPL - Sub. Staff -1",2026,4,0,0,0
+13021,"Gamer Singh  Deora","GPPL - Sub. Staff -1",2026,4,0,0,0
+13024,"Ray Singh Kitawat","GPPL - Sub. Staff -1",2026,4,0,0,0
+13025,"Hari Lal bhil","GPPL - Sub. Staff -1",2026,4,0,0,0
+13026,"Udai Singh","GPPL - Sub. Staff -1",2026,4,0,0,0
+13027,"Manohar Singh Kitawat","GPPL - Sub. Staff -1",2026,4,0,0,0
+13028,"Shambhu Singh Mojawat","GPPL - Sub. Staff -1",2026,4,0,0,0
+13029,"Prem Chandra Lohar","GPPL - Sub. Staff -1",2026,4,0,0,0
+13030,"Vijay Singh Jhala","GPPL - Sub. Staff -1",2026,4,0,0,0
+13031,"Hira Lal Gayri","GPPL - Sub. Staff -1",2026,4,0,0,0
+13034,"Bhanu Singh","GPPL - Sub. Staff -1",2026,4,0,0,0
+13052,"Kishan Lal Bagora","GPPL - Sub. Staff -1",2026,4,0,0,0
+13064,"Shambhu Singh Rathor","GPPL - Sub. Staff -1",2026,4,0,0,0
+13065,"Bheru Singh Kitawat","GPPL - Sub. Staff -1",2026,4,0,0,0
+13066,"Bheru Lal Lohar","GPPL - Sub. Staff -1",2026,4,0,0,0
+13067,"Shiv Singh","GPPL - Sub. Staff -1",2026,4,0,0,0
+13068,"Uday Lal Vyash","GPPL - Sub. Staff -1",2026,4,0,0,0
+13069,"Inder Singh Chundawat","GPPL - Sub. Staff -1",2026,4,0,0,0
+13070,"Ganga Ram Bhil","GPPL - Sub. Staff -1",2026,4,0,0,0
+13071,"Prem Shankar Meghwal","GPPL - Sub. Staff -1",2026,4,0,0,0
+13098,"Jagdish Chandra Lohar","GPPL - Sub. Staff -1",2026,4,0,0,0
+13099,"Dinesh Chandra Oad","GPPL - Sub. Staff -1",2026,4,0,0,0
+13100,"Bheru Lal Paliwal","GPPL - Sub. Staff -1",2026,4,0,0,0
+13101,"Man Singh Mojawat","GPPL - Sub. Staff -1",2026,4,0,0,0
+13102,"Hari Singh Rathor","GPPL - Sub. Staff -1",2026,4,0,0,0
+13103,"Raju lal Gameti","GPPL - Sub. Staff -1",2026,4,0,0,0
+13104,"Bheru Lal Bhil","GPPL - Sub. Staff -1",2026,4,0,0,0
+13105,"Nahar SIngh Kitawat","GPPL - Sub. Staff -1",2026,4,0,0,0
+13106,"Nathu Singh Kitawat","GPPL - Sub. Staff -1",2026,4,0,0,0
+13108,"Amar Chand Gayari","GPPL - Sub. Staff -1",2026,4,0,0,0
+13109,"Mukesh Soni","GPPL - Sub. Staff -1",2026,4,0,0,0
+13112,"Shankar Lal Gogiya","GPPL - Sub. Staff -1",2026,4,0,0,0
+13113,"Kailash kumar","GPPL - Sub. Staff -1",2026,4,0,0,0
+13114,"Nirbhay Singh","GPPL - Sub. Staff -1",2026,4,0,0,0
+13115,"Sajjan Singh Rathor","GPPL - Sub. Staff -1",2026,4,0,0,0
+13116,"Sunder Lal Paliwal","GPPL - Sub. Staff -1",2026,4,0,0,0
+13130,"Ashok Bheel","GPPL - Sub. Staff -1",2026,4,0,0,0
+13141,"Kailash Chandra Dhobi","GPPL - Sub. Staff -1",2026,4,0,0,0
+20036,"Manohar Singh Rathor","GPPL - Sub. Staff -1",2026,4,0,0,0
+20037,"Prakash Chandra Lohar","GPPL - Sub. Staff -1",2026,4,0,0,0
+13040,"Mohan Lal Bhill","GPPL - Sub. Staff -2",2026,4,0,0,0
+13041,"Nirbhay Singh","GPPL - Sub. Staff -2",2026,4,0,0,0
+13043,"Paras Ram Gayri","GPPL - Sub. Staff -2",2026,4,0,0,0
+13045,"Amar Chand Gayri","GPPL - Sub. Staff -2",2026,4,0,0,0
+13046,"Bheru Lal Gujar","GPPL - Sub. Staff -2",2026,4,0,0,0
+13048,"Jitendra Kumar Joshi","GPPL - Sub. Staff -2",2026,4,0,0,0
+13049,"Dugar Lal Rebari","GPPL - Sub. Staff -2",2026,4,0,0,0
+13050,"Tej Singh Rathor","GPPL - Sub. Staff -2",2026,4,0,0,0
+13056,"Mangi Lal Gameti","GPPL - Sub. Staff -2",2026,4,0,0,0
+13057,"Prem Singh Kitawat","GPPL - Sub. Staff -2",2026,4,0,0,0
+13076,"Logar Singh Raput","GPPL - Sub. Staff -2",2026,4,0,0,0
+13095,"Baksi Lal Rebari","GPPL - Sub. Staff -2",2026,4,0,0,0
+13096,"Bhanwar Lal Meghwal","GPPL - Sub. Staff -2",2026,4,0,0,0
+13097,"Hukmi chand","GPPL - Sub. Staff -2",2026,4,0,0,0
+13121,"Gamer Singh","GPPL - Sub. Staff -2",2026,4,0,0,0
+13125,"Prakash Joshi","GPPL - Sub. Staff -2",2026,4,0,0,0
+13126,"Prahlad Joshi","GPPL - Sub. Staff -2",2026,4,0,0,0
+13136,"Shankar Singh Jhala","GPPL - Sub. Staff -2",2026,4,0,0,0
+13143,"Narendra Singh Sisodiya","GPPL - Sub. Staff -2",2026,4,0,0,0
+13144,"Ganesh Lal Rebari","GPPL - Sub. Staff -2",2026,4,0,0,0
+13145,"Pushkar Lal Meghwal","GPPL - Sub. Staff -2",2026,4,0,0,0
+13147,"Mohan Singh Chouhan","GPPL - Sub. Staff -2",2026,4,0,0,0
+13148,"Kalu Singh Chundawat","GPPL - Sub. Staff -2",2026,4,0,0,0
+20362,"Sohan Singh devda","GPPL - Sub. Staff -2",2026,4,0,0,0
+200052,"Narayan Singh Chundawat","GPPL - Sub. Staff -2",2026,4,0,0,0
+200055,"Tulsi Ram  Gameti","GPPL - Sub. Staff -2",2026,4,0,0,0
+200056,"Shankar Lal Gameti","GPPL - Sub. Staff -2",2026,4,0,0,0
+13013,"Ganpat singh","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13015,"Bhagwati Lal","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13016,"Himmat Purohit","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13022,"Lalit Kumar Nagda","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13023,"Deep Singh","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13032,"Babu Lal Mali","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13042,"Harish vaishnav","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13117,"Kailash Purohit","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13131,"Puran Singh Ravana","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13132,"Rakesh Kumar Vaishnav","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13133,"Dilip Singh","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13134,"Parvat Singh Chouhan","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13135,"Kishan Lal Teli","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13146,"Vikram Singh Kitawat","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13149,"Vimal Lohar","GTPPL -  Electrician Staff  salary Sheet",2026,4,0,0,0
+13058,"Narayan Lal Bhill","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13059,"Rajendra Singh Chundawat","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13060,"Surendra Singh Chundawat","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13082,"Jivan Singh","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13083,"Indra Singh Balla","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13084,"Banti Singh Chouhan","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13085,"Virendra Singh","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13086,"Maheswar Singh Jhala","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13087,"Virandra Singh Sisodiya","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13088,"Rajesh Gurjar","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13090,"Abhay Singh  Solanki","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13091,"Ratan Singh","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13092,"Bhagwat singh Sisodiya","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13093,"Mahesh Paliwal","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13094,"Goverdhan Singh","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13137,"Bhagwat Singh Kitawat","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13156,"Bhanwar Singh","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13157,"Unkar Singh","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13158,"Vikram Singh","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13159,"Pankaj Shrimali","GTPPL -STAFF SECURITY",2026,4,0,0,0
+13002,"Chhagan Lal Gayari","GTPPL Store Department",2026,4,0,0,0
+13047,"Prakash Chandra Kumhar","GTPPL Store Department",2026,4,0,0,0
+13139,"Khuman Singh Panwar","GTPPL Store Department",2026,4,0,0,0
+13142,"Laxmi Lal Kumhar","GTPPL Store Department",2026,4,0,0,0
+13008,"Sunil kumar Dashora","GTPPL- Staff",2026,4,0,0,0
+13055,"Vishal Vairagi","GTPPL- Staff",2026,4,0,0,0
+13063,"Arjun Singh Kitawat","GTPPL- Staff",2026,4,0,0,0
+13075,"Jayesh Bagora","GTPPL- Staff",2026,4,0,0,0
+13120,"Rakesh Vaishnav","GTPPL- Staff",2026,4,0,0,0
+13122,"Ankush Dangi","GTPPL- Staff",2026,4,0,0,0
+13123,"Bhanwar Lal Paliwal","GTPPL- Staff",2026,4,0,0,0
+13124,"Jayant Wadhwani","GTPPL- Staff",2026,4,0,0,0
+13154,"Ashirwad Sukhwal","GTPPL- Staff",2026,4,0,0,0
+13153,"Mukesh Porwal",Retainership,2026,4,0,0,0
+20016,"Sajjan Singh Sisodiya","contractor -kishan lal joshi",2026,4,0,0,0
+20017,"Vaibhav Meena","contractor -kishan lal joshi",2026,4,0,0,0
+20032,"Khum Singh Sisodiya","contractor -kishan lal joshi",2026,4,0,0,0
+20033,"Shambhu Lal Joshi","contractor -kishan lal joshi",2026,4,0,0,0
+20057,"Kalu Singh","contractor -kishan lal joshi",2026,4,0,0,0
+20112,"Chetan Singh","contractor -kishan lal joshi",2026,4,0,0,0
+20113,"Hukam Singh","contractor -kishan lal joshi",2026,4,0,0,0
+20256,"Nahar SIngh Kitawat","contractor -kishan lal joshi",2026,4,0,0,0
+20261,"Devi Singh","contractor -kishan lal joshi",2026,4,0,0,0
+20280,"Ram Singh Kitawat","contractor -kishan lal joshi",2026,4,0,0,0
+20284,"Prem Singh Kitawat","contractor -kishan lal joshi",2026,4,0,0,0
+20285,"Jalam Singh Jhala","contractor -kishan lal joshi",2026,4,0,0,0
+20286,"Narendra Singh","contractor -kishan lal joshi",2026,4,0,0,0
+20296,"Narayan Lal Keer","contractor -kishan lal joshi",2026,4,0,0,0
+20298,"Bheru Lal Gujar","contractor -kishan lal joshi",2026,4,0,0,0
+20514,"Dev Singh","contractor -kishan lal joshi",2026,4,0,0,0
+20515,"Sajjan Singh","contractor -kishan lal joshi",2026,4,0,0,0
+20516,"Girvar Singh Solanki","contractor -kishan lal joshi",2026,4,0,0,0
+20518,"Ratan Singh Solanki","contractor -kishan lal joshi",2026,4,0,0,0
+20519,"Maan Singh","contractor -kishan lal joshi",2026,4,0,0,0
+20520,"Naresh Paliwal","contractor -kishan lal joshi",2026,4,0,0,0
+20522,"Dilip Lal Gameti","contractor -kishan lal joshi",2026,4,0,0,0
+20599,"Hurry Shanker","contractor -kishan lal joshi",2026,4,0,0,0
+20600,"Bhupendra Meghwal","contractor -kishan lal joshi",2026,4,0,0,0
+20601,"Kailash Joshi","contractor -kishan lal joshi",2026,4,0,0,0

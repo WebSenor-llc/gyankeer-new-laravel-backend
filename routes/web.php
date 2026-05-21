@@ -9,6 +9,7 @@ use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\SalaryGroupController;
 use App\Http\Controllers\SalaryStructureController;
 use App\Http\Controllers\SalaryRunController;
+use App\Http\Controllers\LeaveBalanceController;
 use App\Http\Controllers\PayslipController;
 // (PayslipController is also used in the payroll group for runs/payslips)
 use App\Http\Controllers\IncentiveController;
@@ -99,6 +100,10 @@ Route::middleware(['auth'])->group(function () {
         // SUGAM-style salary generation: pick Company × Salary Group × Month
         Route::get  ('/generate',     [SalaryRunController::class,'generate'])   ->name('generate');
         Route::post ('/generate',     [SalaryRunController::class,'generateRun'])->name('generate.run');
+        Route::post ('/generate/all', [SalaryRunController::class,'generateAllGroups'])->name('generate.all');
+        // Friendly bounce — if someone GETs this URL directly (refresh after
+        // submit, bookmark, etc.) send them back to the form instead of 405.
+        Route::get  ('/generate/all', fn () => redirect()->route('payroll.generate'));
         Route::post ('/generate/delete', [SalaryRunController::class,'deleteGroupPayroll'])->name('generate.delete');
 
         Route::get   ('/runs',                [SalaryRunController::class,'index'])->name('runs.index');
@@ -140,6 +145,14 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get ('/payroll/transactions',   [\App\Http\Controllers\SalaryTransactionController::class,'index'])->name('payroll.transactions');
     Route::get ('/payroll/statistical',    [ReportController::class,'statistical'])->name('reports.statistical');
+
+    // ============== Leave Balances ==============
+    Route::get ('/leaves/balances',         [LeaveBalanceController::class, 'index'])->name('leaves.balances');
+    Route::post('/leaves/balances/import',  [LeaveBalanceController::class, 'import'])->name('leaves.balances.import');
+    // Friendly aliases so /leave/balance and /leave/balances also work
+    Route::get ('/leave/balance',           fn () => redirect()->route('leaves.balances'));
+    Route::get ('/leave/balances',          fn () => redirect()->route('leaves.balances'));
+    Route::get ('/leaves/balance',          fn () => redirect()->route('leaves.balances'));
 
     // ============== Statutory & Compliance (India) ==============
     Route::prefix('statutory')->name('statutory.')->controller(StatutoryController::class)->group(function () {

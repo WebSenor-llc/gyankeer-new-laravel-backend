@@ -79,7 +79,7 @@
                         <td>&#8377;{{ number_format($r->ee_0_75 ?? 0, 0) }}</td>
                         <td>&#8377;{{ number_format($r->er_3_25 ?? 0, 0) }}</td>
                         <td>&#8377;{{ number_format($r->total_contribution ?? 0, 0) }}</td>
-                        <td>{{ $r->days_worked ?? 0 }}</td>
+                        <td>{{ rtrim(rtrim(number_format((float) ($r->days_worked ?? 0), 2, '.', ''), '0'), '.') ?: '0' }}</td>
                         <td><span class="pill pill-warn">Pending</span></td>
                     </tr>
                 @empty

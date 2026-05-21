@@ -108,7 +108,10 @@ class SalaryRunController extends Controller
     protected function exportGroupSheet(string $format, $employees, int $companyId, int $salaryGroupId, int $year, int $month)
     {
         $monthName = \DateTime::createFromFormat('!m', $month)->format('M');
-        $groupName = \App\Models\SalaryGroup::where('salary_group_id', $salaryGroupId)->value('salary_group_name') ?? 'group';
+        // When no group picked, label the file "all-groups" instead of "group"
+        $groupName = $salaryGroupId
+            ? (\App\Models\SalaryGroup::where('salary_group_id', $salaryGroupId)->value('salary_group_name') ?? 'group')
+            : 'all-groups';
         $slug      = preg_replace('/[^A-Za-z0-9]+/', '-', $groupName);
         $filename  = "salary-sheet-{$slug}-{$monthName}-{$year}." . ($format === 'csv' ? 'csv' : 'xls');
 
@@ -562,6 +565,318 @@ class SalaryRunController extends Controller
                 'year'             => $year,
                 'month'            => $month,
                 'get_list'         => 1,
+            ])->with('status', $msg);
+    }
+
+    /**
+     * Generate payroll for EVERY salary group of the picked company × period
+     * in one click. Loops every active group, fires the engine on each
+     * employee in that group, and returns a combined summary so the user
+     * doesn't need to pick a group manually.
+     *
+     * If `company_id` is omitted, uses session('active_company_id').
+     */
+    public function generateAllGroups(Request $req)
+    {
+        $req->validate([
+            'company_id' => 'nullable|integer',
+            'year'       => 'required|integer|between:2020,2030',
+            'month'      => 'required|integer|between:1,12',
+        ]);
+
+        $companyId = (int) ($req->input('company_id') ?: session('active_company_id', 0));
+        $year      = $req->integer('year');
+        $month     = $req->integer('month');
+
+        if (!$companyId) {
+            return back()->with('status', '❌ No company selected. Pick a company first.');
+        }
+
+        // Every salary group attached to that company that has at least
+        // one active employee — skip empty groups silently.
+        $groups = \App\Models\SalaryGroup::where('company_id', $companyId)
+            ->whereIn('salary_group_id', function ($q) use ($companyId) {
+                $q->select('salary_group_id')
+                  ->from('employees')
+                  ->where('company_id', $companyId)
+                  ->where('active_flag', true)
+                  ->whereNotNull('salary_group_id')
+                  ->distinct();
+            })
+            ->orderBy('salary_group_name')
+            ->get();
+
+        if ($groups->isEmpty()) {
+            return back()->with('status', "❌ No salary groups with active employees in company {$companyId}.");
+        }
+
+        $run = SalaryRun::firstOrCreate(
+            ['company_id' => $companyId, 'period_year' => $year, 'period_month' => $month],
+            [
+                'run_code'       => sprintf('SALRUN-%04d-%02d', $year, $month),
+                'status'         => 'Draft',
+                'run_started_at' => now(),
+                'created_by'     => auth()->user()?->name ?? 'system',
+            ]
+        );
+
+        if ($run->status === 'Posted') {
+            return back()->with('status', 'Cannot regenerate — run is already Posted for this period.');
+        }
+
+        /** @var PayrollEngine $engine */
+        $engine = app(PayrollEngine::class);
+
+        $totalGen   = 0;
+        $totalSkip  = 0;
+        $perGroup   = [];   // [group_name => generated_count]
+        $allSkipped = [];
+
+        foreach ($groups as $g) {
+            $empIds = \App\Models\Employee::where('active_flag', true)
+                ->where('company_id', $companyId)
+                ->where('salary_group_id', $g->salary_group_id)
+                ->pluck('emp_id');
+
+            if ($empIds->isEmpty()) continue;
+
+            // Wipe these employees' payslips in this run first (idempotent re-run)
+            Payslip::where('run_id', $run->run_id)
+                ->whereIn('emp_id', $empIds)
+                ->delete();
+
+            $gen = 0;
+            $employees = \App\Models\Employee::whereIn('emp_id', $empIds)->get();
+            foreach ($employees as $emp) {
+                if (!$emp->current_gross && !$emp->current_basic) {
+                    $allSkipped[] = "{$emp->emp_id} (no salary data)";
+                    $totalSkip++;
+                    continue;
+                }
+                try {
+                    $engine->computeForEmployee($emp, $run);
+                    $gen++;
+                } catch (\Throwable $ex) {
+                    $allSkipped[] = "{$emp->emp_id} (" . substr($ex->getMessage(), 0, 50) . ')';
+                    $totalSkip++;
+                }
+            }
+
+            $totalGen          += $gen;
+            $perGroup[$g->salary_group_name] = $gen;
+        }
+
+        // Refresh totals on the run
+        $totals = Payslip::where('run_id', $run->run_id)->selectRaw('
+            COUNT(*) as cnt,
+            SUM(gross_earnings) as earnings,
+            SUM(total_deductions) as deductions,
+            SUM(net_pay) as net,
+            SUM(total_employer_cost) as ctc,
+            SUM(epf_emp) as pf_emp, SUM(employer_pf) as pf_er,
+            SUM(eps) as eps, SUM(edli) as edli, SUM(pf_admin) as admin,
+            SUM(esi_emp) as esi_emp, SUM(employer_esi) as esi_er,
+            SUM(pt) as pt, SUM(lwf_emp) as lwf_emp, SUM(lwf_employer) as lwf_er,
+            SUM(tds) as tds, SUM(bonus) as bonus, SUM(gratuity_provision) as grat
+        ')->first();
+
+        $run->update([
+            'eligible_emp_count'       => $totals->cnt ?? 0,
+            'total_earnings'           => $totals->earnings ?? 0,
+            'total_deductions'         => $totals->deductions ?? 0,
+            'total_net_payout'         => $totals->net ?? 0,
+            'total_employer_cost'      => $totals->ctc ?? 0,
+            'total_pf_emp'             => $totals->pf_emp ?? 0,
+            'total_pf_er'              => $totals->pf_er ?? 0,
+            'total_eps'                => $totals->eps ?? 0,
+            'total_edli'               => $totals->edli ?? 0,
+            'total_admin'              => $totals->admin ?? 0,
+            'total_esi_emp'            => $totals->esi_emp ?? 0,
+            'total_esi_er'             => $totals->esi_er ?? 0,
+            'total_pt'                 => $totals->pt ?? 0,
+            'total_lwf_emp'            => $totals->lwf_emp ?? 0,
+            'total_lwf_er'             => $totals->lwf_er ?? 0,
+            'total_tds'                => $totals->tds ?? 0,
+            'total_bonus_provision'    => $totals->bonus ?? 0,
+            'total_gratuity_provision' => $totals->grat ?? 0,
+            'calc_completed_at'        => now(),
+            'status'                   => $run->status === 'Posted' ? 'Posted' : 'Computed',
+        ]);
+
+        $perGroupSummary = collect($perGroup)
+            ->map(fn ($n, $name) => "{$name}: {$n}")
+            ->implode(' • ');
+
+        $msg = "✅ Generated {$totalGen} payslips across "
+             . $groups->count() . " group(s) for "
+             . \DateTime::createFromFormat('!m', $month)->format('F') . " {$year}. "
+             . "[ {$perGroupSummary} ]";
+
+        if ($totalSkip > 0) {
+            $msg .= " Skipped {$totalSkip}: " . implode(', ', array_slice($allSkipped, 0, 3))
+                  . (count($allSkipped) > 3 ? ', …' : '');
+        }
+
+        return redirect()->route('payroll.generate', [
+                'company_id' => $companyId,
+                'year'       => $year,
+                'month'      => $month,
+            ])->with('status', $msg);
+    }
+
+    /**
+     * Generate payroll for EVERY salary group of the picked company × period
+     * in one click. Loops every active group, fires the engine on each
+     * employee in that group, and returns a combined summary so the user
+     * doesn't need to pick a group manually.
+     *
+     * If `company_id` is omitted, uses session('active_company_id').
+     */
+    public function generateAllGroups(Request $req)
+    {
+        $req->validate([
+            'company_id' => 'nullable|integer',
+            'year'       => 'required|integer|between:2020,2030',
+            'month'      => 'required|integer|between:1,12',
+        ]);
+
+        $companyId = (int) ($req->input('company_id') ?: session('active_company_id', 0));
+        $year      = $req->integer('year');
+        $month     = $req->integer('month');
+
+        if (!$companyId) {
+            return back()->with('status', '❌ No company selected. Pick a company first.');
+        }
+
+        // Every salary group attached to that company that has at least
+        // one active employee — skip empty groups silently.
+        $groups = \App\Models\SalaryGroup::where('company_id', $companyId)
+            ->whereIn('salary_group_id', function ($q) use ($companyId) {
+                $q->select('salary_group_id')
+                  ->from('employees')
+                  ->where('company_id', $companyId)
+                  ->where('active_flag', true)
+                  ->whereNotNull('salary_group_id')
+                  ->distinct();
+            })
+            ->orderBy('salary_group_name')
+            ->get();
+
+        if ($groups->isEmpty()) {
+            return back()->with('status', "❌ No salary groups with active employees in company {$companyId}.");
+        }
+
+        $run = SalaryRun::firstOrCreate(
+            ['company_id' => $companyId, 'period_year' => $year, 'period_month' => $month],
+            [
+                'run_code'       => sprintf('SALRUN-%04d-%02d', $year, $month),
+                'status'         => 'Draft',
+                'run_started_at' => now(),
+                'created_by'     => auth()->user()?->name ?? 'system',
+            ]
+        );
+
+        if ($run->status === 'Posted') {
+            return back()->with('status', 'Cannot regenerate — run is already Posted for this period.');
+        }
+
+        /** @var PayrollEngine $engine */
+        $engine = app(PayrollEngine::class);
+
+        $totalGen   = 0;
+        $totalSkip  = 0;
+        $perGroup   = [];   // [group_name => generated_count]
+        $allSkipped = [];
+
+        foreach ($groups as $g) {
+            $empIds = \App\Models\Employee::where('active_flag', true)
+                ->where('company_id', $companyId)
+                ->where('salary_group_id', $g->salary_group_id)
+                ->pluck('emp_id');
+
+            if ($empIds->isEmpty()) continue;
+
+            // Wipe these employees' payslips in this run first (idempotent re-run)
+            Payslip::where('run_id', $run->run_id)
+                ->whereIn('emp_id', $empIds)
+                ->delete();
+
+            $gen = 0;
+            $employees = \App\Models\Employee::whereIn('emp_id', $empIds)->get();
+            foreach ($employees as $emp) {
+                if (!$emp->current_gross && !$emp->current_basic) {
+                    $allSkipped[] = "{$emp->emp_id} (no salary data)";
+                    $totalSkip++;
+                    continue;
+                }
+                try {
+                    $engine->computeForEmployee($emp, $run);
+                    $gen++;
+                } catch (\Throwable $ex) {
+                    $allSkipped[] = "{$emp->emp_id} (" . substr($ex->getMessage(), 0, 50) . ')';
+                    $totalSkip++;
+                }
+            }
+
+            $totalGen          += $gen;
+            $perGroup[$g->salary_group_name] = $gen;
+        }
+
+        // Refresh totals on the run
+        $totals = Payslip::where('run_id', $run->run_id)->selectRaw('
+            COUNT(*) as cnt,
+            SUM(gross_earnings) as earnings,
+            SUM(total_deductions) as deductions,
+            SUM(net_pay) as net,
+            SUM(total_employer_cost) as ctc,
+            SUM(epf_emp) as pf_emp, SUM(employer_pf) as pf_er,
+            SUM(eps) as eps, SUM(edli) as edli, SUM(pf_admin) as admin,
+            SUM(esi_emp) as esi_emp, SUM(employer_esi) as esi_er,
+            SUM(pt) as pt, SUM(lwf_emp) as lwf_emp, SUM(lwf_employer) as lwf_er,
+            SUM(tds) as tds, SUM(bonus) as bonus, SUM(gratuity_provision) as grat
+        ')->first();
+
+        $run->update([
+            'eligible_emp_count'       => $totals->cnt ?? 0,
+            'total_earnings'           => $totals->earnings ?? 0,
+            'total_deductions'         => $totals->deductions ?? 0,
+            'total_net_payout'         => $totals->net ?? 0,
+            'total_employer_cost'      => $totals->ctc ?? 0,
+            'total_pf_emp'             => $totals->pf_emp ?? 0,
+            'total_pf_er'              => $totals->pf_er ?? 0,
+            'total_eps'                => $totals->eps ?? 0,
+            'total_edli'               => $totals->edli ?? 0,
+            'total_admin'              => $totals->admin ?? 0,
+            'total_esi_emp'            => $totals->esi_emp ?? 0,
+            'total_esi_er'             => $totals->esi_er ?? 0,
+            'total_pt'                 => $totals->pt ?? 0,
+            'total_lwf_emp'            => $totals->lwf_emp ?? 0,
+            'total_lwf_er'             => $totals->lwf_er ?? 0,
+            'total_tds'                => $totals->tds ?? 0,
+            'total_bonus_provision'    => $totals->bonus ?? 0,
+            'total_gratuity_provision' => $totals->grat ?? 0,
+            'calc_completed_at'        => now(),
+            'status'                   => $run->status === 'Posted' ? 'Posted' : 'Computed',
+        ]);
+
+        $perGroupSummary = collect($perGroup)
+            ->map(fn ($n, $name) => "{$name}: {$n}")
+            ->implode(' • ');
+
+        $msg = "✅ Generated {$totalGen} payslips across "
+             . $groups->count() . " group(s) for "
+             . \DateTime::createFromFormat('!m', $month)->format('F') . " {$year}. "
+             . "[ {$perGroupSummary} ]";
+
+        if ($totalSkip > 0) {
+            $msg .= " Skipped {$totalSkip}: " . implode(', ', array_slice($allSkipped, 0, 3))
+                  . (count($allSkipped) > 3 ? ', …' : '');
+        }
+
+        return redirect()->route('payroll.generate', [
+                'company_id' => $companyId,
+                'year'       => $year,
+                'month'      => $month,
             ])->with('status', $msg);
     }
 

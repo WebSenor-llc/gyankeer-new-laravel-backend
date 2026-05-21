@@ -82,7 +82,7 @@
                 <tr>
                     <td class="c">{{ $r->ip_no ?: ($e->esi_ip_no ?? '') }}</td>
                     <td class="l">{{ $r->member_name ?: ($e->full_name ?? '') }}</td>
-                    <td class="c">{{ $r->days_worked ?? 0 }}</td>
+                    <td class="c">{{ rtrim(rtrim(number_format((float) ($r->days_worked ?? 0), 2, '.', ''), '0'), '.') ?: '0' }}</td>
                     <td class="r">{{ number_format((float) ($r->gross_wage ?? 0), 0) }}</td>
                     <td class="c">-----</td>
                     <td class="c">{{ $exitDate }}</td>

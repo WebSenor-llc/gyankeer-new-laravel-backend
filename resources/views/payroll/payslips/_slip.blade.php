@@ -22,15 +22,27 @@
     // CO/CR & Other-leave aren't tracked separately yet; placeholder zeros
     $att_co_cr   = 0.0;
     $att_other   = 0.0;
-    $att_total   = $att_present + $att_wo + $att_ph + $att_abs + $att_cl + $att_pl + $att_sl + ($att_hd * 0.5);
+
+    // Total Days = sum of calendar-day buckets (HD is a full calendar day where
+    // the worker was half-present + half-leave, so it counts as 1 day towards
+    // the calendar total, not 0.5).
+    $att_total   = $att_present + $att_wo + $att_ph + $att_abs
+                 + $att_cl + $att_pl + $att_sl + $att_hd + $att_co_cr + $att_other;
+
+    // Working Days for the salary slip = full presents + half-credit of HD days
+    // (only HD's "present-half" counts as worked time).
+    $att_working = $att_present + ($att_hd * 0.5);
+
     $payableDays = (float) ($payslip->payable_days ?? 0);
 
-    // Leave balances (best-effort lookup — table may not have rows for every emp)
+    // Leave balances — resolved against the payslip's FY (Apr-Dec → next year,
+    // Jan-Mar → same year) so the carry-forward shows correctly after import.
     try {
+        $slipFy = $payslip->period_month >= 4 ? $payslip->period_year + 1 : $payslip->period_year;
         $cl_bal = optional(\App\Models\LeaveBalance::where('emp_id', $emp->emp_id)
-                    ->where('leave_code', 'CL')->first())->closing_balance ?? null;
+                    ->where('leave_code', 'CL')->where('fy', $slipFy)->first())->closing_balance ?? null;
         $pl_bal = optional(\App\Models\LeaveBalance::where('emp_id', $emp->emp_id)
-                    ->where('leave_code', 'PL')->first())->closing_balance ?? null;
+                    ->where('leave_code', 'PL')->where('fy', $slipFy)->first())->closing_balance ?? null;
     } catch (\Throwable $e) { $cl_bal = null; $pl_bal = null; }
 
     // Format helper: 0.00 numeric column on the slip
@@ -135,7 +147,7 @@
                 <table style="width:100%;font-size:11px">
                     @php
                         $attRows = [
-                            ['Working Days', $att_present + ($att_hd * 0.5)],
+                            ['Working Days', $att_working],
                             ['Weekly off',   $att_wo],
                             ['Paid Holiday', $att_ph],
                             ['Absent',       $att_abs],
