@@ -1010,8 +1010,7 @@ class AttendanceLeaveController extends Controller
 
     public function balance()
     {
-        $balances = LeaveBalance::with(['emp'])->orderBy('emp_id')->paginate(50);
-        return view('leave.balance', compact('balances'));
+        return app(LeaveBalanceController::class)->index(request());
     }
 
     public function record(Request $req)

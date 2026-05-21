@@ -127,7 +127,7 @@
                     <a href="{{ route('leave.online') }}"             class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('leave.online') ? 'active' : '' }}">Online Leaves</a>
                     <a href="{{ route('attendance.tour') }}"          class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.tour') ? 'active' : '' }}">Tour / ODs</a>
                     <a href="{{ route('leave.record') }}"             class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('leave.record') ? 'active' : '' }}">Leave Record</a>
-                    <a href="{{ route('leave.balance') }}"            class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('leave.balance') ? 'active' : '' }}">Leave Balance</a>
+                    <a href="{{ route('leaves.balances') }}"          class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('leave.balance', 'leaves.balances') ? 'active' : '' }}">Leave Balance</a>
                     <a href="{{ route('attendance.upload') }}"        class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.upload') ? 'active' : '' }}">Attendance Upload</a>
                 </div>
             </details>
