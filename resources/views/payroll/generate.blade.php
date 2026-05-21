@@ -28,9 +28,9 @@
             </div>
 
             <div class="col-span-3">
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Salary Group :</label>
-                <select name="salary_group_id" required class="block w-full border border-[var(--line)] rounded p-2 text-sm">
-                    <option value="">— Select Group —</option>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Salary Group <span class="text-slate-400 font-normal">(optional)</span> :</label>
+                <select name="salary_group_id" class="block w-full border border-[var(--line)] rounded p-2 text-sm">
+                    <option value="">— All Groups —</option>
                     @foreach($salaryGroups as $g)
                         <option value="{{ $g->salary_group_id }}" @selected($salaryGroupId == $g->salary_group_id)>{{ $g->salary_group_name }}</option>
                     @endforeach
@@ -61,7 +61,17 @@
 
             <div class="col-span-12 flex gap-2 mt-1 flex-wrap">
                 <button type="submit" class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C;color:#fff">Get List</button>
-                <button type="button" onclick="document.getElementById('genForm').submit()" class="tb-btn primary" style="background:#16A34A;border-color:#15803D;color:#fff" @disabled(!$previewLoaded)>Generate Salary</button>
+                <button type="button" onclick="document.getElementById('genForm').submit()" class="tb-btn primary"
+                        style="background:#16A34A;border-color:#15803D;color:#fff"
+                        @disabled(!$previewLoaded || !$salaryGroupId)
+                        title="{{ $salaryGroupId ? 'Generate salary for the picked group' : 'Pick a specific salary group first, or use Generate ALL Groups' }}">
+                    Generate Salary (selected group)
+                </button>
+                <button type="button" onclick="generateAllGroups()" class="tb-btn primary"
+                        style="background:#7C3AED;border-color:#6D28D9;color:#fff"
+                        title="Skip group selection — run payroll for every salary group of this company × month in one click.">
+                    ⚡ Generate ALL Groups
+                </button>
                 @if($previewLoaded && $employees->isNotEmpty())
                     <button type="button" onclick="exportSelected('csv')"
                             class="tb-btn primary" style="background:#16A34A;border-color:#15803D">⬇ Export CSV</button>
@@ -197,7 +207,45 @@
 </div>
 @endif
 
+{{-- Hidden form used by "Generate ALL Groups" — submits to /payroll/generate/all
+     with the company_id + year + month picked above, without needing a salary group. --}}
+<form method="POST" action="{{ route('payroll.generate.all') }}" id="genAllForm" style="display:none">
+    @csrf
+    <input type="hidden" name="company_id" id="genAllCompanyId">
+    <input type="hidden" name="year"       id="genAllYear">
+    <input type="hidden" name="month"      id="genAllMonth">
+</form>
+
 <script>
+/**
+ * Skip group selection — fire payroll for every salary group of the picked
+ * company × month in one shot. Picks values straight from the picker form.
+ */
+function generateAllGroups() {
+    const picker = document.getElementById('pickerForm');
+    const companyId = picker.querySelector('[name=company_id]').value;
+    const month     = picker.querySelector('[name=month]').value;
+    const year      = picker.querySelector('[name=year]').value;
+
+    if (!companyId) {
+        alert('Please pick a Company first.');
+        return;
+    }
+
+    const monthLabel = picker.querySelector('[name=month] option:checked').textContent;
+    const ok = confirm(
+        `Generate salary for ALL salary groups of this company for ${monthLabel} ${year}?\n\n` +
+        `This wipes any existing payslips for these employees in this period and recomputes from scratch. ` +
+        `Manual deductions, attendance, and OT records are preserved.`
+    );
+    if (!ok) return;
+
+    document.getElementById('genAllCompanyId').value = companyId;
+    document.getElementById('genAllYear').value      = year;
+    document.getElementById('genAllMonth').value     = month;
+    document.getElementById('genAllForm').submit();
+}
+
 function toggleAll(master) {
     document.querySelectorAll('.empChk').forEach(cb => cb.checked = master.checked);
     refreshCount();

@@ -125,7 +125,7 @@
                     <td class="r">{{ number_format($epsTot, 0) }}</td>
                     <td class="r">{{ number_format($erEpf, 0) }}</td>
                     <td class="r">{{ number_format($erEpf, 0) }}</td>
-                    <td class="c">{{ (int) ($r->ncp_days ?? 0) }}</td>
+                    <td class="c">{{ rtrim(rtrim(number_format((float) ($r->ncp_days ?? 0), 2, '.', ''), '0'), '.') ?: '0' }}</td>
                     <td class="r">0</td>
                     <td class="r">0</td>
                     <td class="r">0</td>

@@ -99,7 +99,7 @@
                         <td>&#8377;{{ number_format($r->er_share_3_67 ?? 0, 0) }}</td>
                         <td>&#8377;{{ number_format($r->edli_0_5 ?? 0, 0) }}</td>
                         <td>&#8377;{{ number_format($r->pf_admin_0_5 ?? 0, 0) }}</td>
-                        <td>{{ $r->ncp_days ?? 0 }}</td>
+                        <td>{{ rtrim(rtrim(number_format((float) ($r->ncp_days ?? 0), 2, '.', ''), '0'), '.') ?: '0' }}</td>
                         <td><span class="pill {{ ($r->filed_status ?? '') === 'Filed' ? 'pill-ok' : 'pill-warn' }}">{{ $r->filed_status ?? 'Pending' }}</span></td>
                     </tr>
                 @empty

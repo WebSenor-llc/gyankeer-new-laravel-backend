@@ -134,8 +134,9 @@ class StatutoryController extends Controller
             $emp = $p->emp;
             if (!$emp) continue;
 
-            // NCP days = LOP days (Non-Contributory Period for EPFO reporting)
-            $ncpDays = (int) round((float) $p->lop_days);
+            // NCP days = LOP days (Non-Contributory Period for EPFO reporting).
+            // Float preserved — half-day LOP (e.g. 1.5) stays as 1.5, not 2.
+            $ncpDays = (float) $p->lop_days;
 
             \App\Models\PfEcrRecord::create([
                 'period_year'      => $year,
@@ -252,7 +253,9 @@ class StatutoryController extends Controller
                 'ip_no'        => $p->emp->esi_ip_no ?? '',
                 'member_name'  => $p->emp->full_name ?? '',
                 'gross_wage'   => (float) $p->gross_earnings,
-                'days_worked'  => (int) round((float) $p->payable_days),
+                // Float preserved — half-day attendance (e.g. 5.5, 12.5) flows
+                // through to the ESIC return unchanged.
+                'days_worked'  => (float) $p->payable_days,
                 'ee_0_75'      => (float) $p->esi_emp,
                 'er_3_25'      => (float) $p->employer_esi,
                 'total_contribution' => (float) $p->esi_emp + (float) $p->employer_esi,
@@ -641,7 +644,7 @@ class StatutoryController extends Controller
                     (int) round($epsTotal),                                      // EPSR
                     (int) round($erEpf),                                         // DIFC (ER 3.67%)
                     (int) round($erEpf),                                         // DIFR
-                    (int) round((float) ($r->ncp_days ?? 0)),                    // NCP
+                    (float) ($r->ncp_days ?? 0),                                 // NCP (keep decimal)
                     0, 0, 0, 0, 0,                                               // RADV, ARREPF, ARREPFEE, ARREPER, ARREPS
                     $e->fathers_name ?? '',                                      // FNAME
                     '',                                                          // RMBR
@@ -718,8 +721,8 @@ class StatutoryController extends Controller
                 $data[] = [
                     $r->ip_no ?? ($e->esi_ip_no ?? ''),
                     $r->member_name ?? ($e->full_name ?? ''),
-                    $r->days_worked ?? 0,
-                    (int) round((float) ($r->gross_wage ?? 0)),
+                    (float) ($r->days_worked ?? 0),                              // float — half-days preserved
+                    (int) round((float) ($r->gross_wage ?? 0)),                  // rupees → whole number
                     '-----',
                     $exitDate,
                     $e->salary_group->salary_group_name ?? '',
@@ -943,21 +946,27 @@ class StatutoryController extends Controller
         $html .= "<head><meta charset='UTF-8'><title>" . e($title) . "</title>";
         $html .= "<style>body{font-family:Calibri,Arial} table{border-collapse:collapse} ";
         $html .= "td,th{border:1px solid #888;padding:4px 6px;font-size:11px} ";
-        $html .= "th{background:#E5E7EB;font-weight:bold} .num{mso-number-format:'#\\,##0';text-align:right}</style></head><body>";
+        $html .= "th{background:#E5E7EB;font-weight:bold} td.num{text-align:right}</style></head><body>";
         $html .= "<h3>" . e($title) . "</h3><table><thead><tr>";
         foreach ($headers as $h) $html .= "<th>" . e($h) . "</th>";
         $html .= "</tr></thead><tbody>";
         foreach ($rows as $r) {
             $html .= "<tr>";
             foreach ($r as $cell) {
-                $isNumeric = is_numeric($cell);
-                $cls = $isNumeric ? " class='num'" : '';
-                // Wrap longish strings as text to stop Excel auto-converting
-                // PFNo / IP-Number / UAN long digit strings into scientific notation.
-                if (!$isNumeric) {
-                    $html .= "<td{$cls} style='mso-number-format:\"\\@\"'>" . e((string) $cell) . "</td>";
+                if (is_numeric($cell)) {
+                    // Detect whether the value has any decimal part — if it
+                    // does we use a 0.00 mask so half-days (5.5, 12.5) survive
+                    // in Excel. Whole numbers (rupee totals like 19876) get the
+                    // plain integer mask so they render without trailing .00.
+                    $val      = (float) $cell;
+                    $hasFrac  = (abs($val - round($val)) > 0.0001);
+                    $mask     = $hasFrac ? '#\\,##0.00' : '#\\,##0';
+                    $html .= "<td class='num' style=\"mso-number-format:'{$mask}'\">" . e((string) $cell) . "</td>";
                 } else {
-                    $html .= "<td{$cls}>" . e((string) $cell) . "</td>";
+                    // Wrap non-numeric values as text to stop Excel auto-
+                    // converting long IDs (PFNo / IP-Number / UAN) into
+                    // scientific notation.
+                    $html .= "<td style='mso-number-format:\"\\@\"'>" . e((string) $cell) . "</td>";
                 }
             }
             $html .= "</tr>";

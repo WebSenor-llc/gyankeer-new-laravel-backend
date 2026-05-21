@@ -440,7 +440,104 @@ class PayrollEngine
             $manual->update(['payslip_id' => $payslip->payslip_id]);
         }
 
+        // ── Leave-balance decrement (idempotent via leave_ledger) ──
+        // Uses attendance_summary CL/PL/SL counts for this period; writes a
+        // ledger row per (emp × code × period) then recomputes closing balance
+        // on leave_balances from opening + accrued − sum(ledger).
+        try {
+            $this->applyLeaveLedger($e, $run);
+        } catch (\Throwable $ex) {
+            // Don't break payroll if leave tables are missing/locked — just log
+            \Log::warning("LeaveLedger update skipped for emp {$e->emp_id}: " . $ex->getMessage());
+        }
+
         return $payslip;
+    }
+
+    /**
+     * Apply the month's CL/PL/SL consumption to leave_ledger + leave_balances.
+     * Called from computeForEmployee. Re-running for the same period UPDATES
+     * the same ledger row (unique key), so balances never double-decrement.
+     *
+     * FY end-year convention: Apr-2026 → Mar-2027 wage period belongs to FY 2027.
+     */
+    protected function applyLeaveLedger(Employee $e, SalaryRun $run): void
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasTable('leave_ledger')) return;
+        if (!\Illuminate\Support\Facades\Schema::hasTable('leave_balances')) return;
+
+        $year  = (int) $run->period_year;
+        $month = (int) $run->period_month;
+
+        // FY year-end: Apr-Dec → next year; Jan-Mar → same year.
+        $fy = $month >= 4 ? ($year + 1) : $year;
+
+        $att = \App\Models\AttendanceSummary::where('emp_id', $e->emp_id)
+            ->where('period_year', $year)
+            ->where('period_month', $month)
+            ->first();
+        if (!$att) return;
+
+        $codeMap = [
+            'CL' => (float) ($att->cl_count ?? 0),
+            'PL' => (float) ($att->pl_count ?? 0),
+            'SL' => (float) ($att->sl_count ?? 0),
+        ];
+
+        foreach ($codeMap as $code => $days) {
+            // Always upsert the ledger row even when days = 0 so re-runs
+            // remove a previously-recorded consumption if attendance was edited.
+            \DB::table('leave_ledger')->updateOrInsert(
+                [
+                    'emp_id'       => $e->emp_id,
+                    'leave_code'   => $code,
+                    'period_year'  => $year,
+                    'period_month' => $month,
+                ],
+                [
+                    'company_id'    => $e->company_id,
+                    'days_consumed' => $days,
+                    'source'        => 'payroll',
+                    'updated_at'    => now(),
+                    'created_at'    => now(),
+                ]
+            );
+
+            // Recompute closing balance for this employee+code+fy from
+            // opening + accrued − SUM(ledger consumed in this FY)
+            // FY 2027 = Apr-2026 .. Mar-2027.
+            $fyStart = \Carbon\Carbon::createFromDate($fy - 1, 4, 1);
+            $fyEnd   = \Carbon\Carbon::createFromDate($fy, 3, 31);
+
+            $consumed = (float) \DB::table('leave_ledger')
+                ->where('emp_id', $e->emp_id)
+                ->where('leave_code', $code)
+                ->where(function ($q) use ($fyStart, $fyEnd) {
+                    $q->whereBetween('period_year', [$fyStart->year, $fyEnd->year])
+                      ->whereRaw('(period_year * 12 + period_month) BETWEEN ? AND ?', [
+                          $fyStart->year * 12 + $fyStart->month,
+                          $fyEnd->year   * 12 + $fyEnd->month,
+                      ]);
+                })
+                ->sum('days_consumed');
+
+            $bal = \App\Models\LeaveBalance::withTrashed()
+                ->where('emp_id', $e->emp_id)
+                ->where('leave_code', $code)
+                ->where('fy', $fy)
+                ->first();
+            if (!$bal) continue;   // No opening row for this FY — skip silently
+
+            $opening = (float) ($bal->opening_balance ?? 0);
+            $accrued = (float) ($bal->accrued_ytd     ?? 0);
+            $closing = $opening + $accrued - $consumed;
+
+            $bal->update([
+                'availed_ytd'       => (string) $consumed,
+                'closing_balance'   => (string) $closing,
+                'last_applied_date' => \Carbon\Carbon::createFromDate($year, $month, 1)->endOfMonth(),
+            ]);
+        }
     }
 
     /**
