@@ -29,7 +29,7 @@
             <thead>
                 <tr style="background:#FEF2F2">
                     <th style="width:36px">
-                        <input type="checkbox" class="grpCheckAll" onclick="toggleGroup(this, {{ $gid }})" checked>
+                        <input type="checkbox" id="grpCheckAll-{{ $gid }}" class="grpCheckAll" data-group-id="{{ $gid }}" onclick="toggleGroup(this, {{ $gid }})" checked>
                     </th>
                     <th>Emp ID</th>
                     <th>Name</th>

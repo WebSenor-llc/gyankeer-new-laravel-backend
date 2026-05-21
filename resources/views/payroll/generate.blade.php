@@ -222,6 +222,49 @@ function generateAllGroups() {
     document.getElementById('genAllForm').submit();
 }
 
+function setSalaryGroupHiddenInputs() {
+    const hidden = document.getElementById('sgHidden');
+    const label  = document.getElementById('sgLabel');
+    if (!hidden) return;
+
+    hidden.innerHTML = '';
+
+    const selected = [];
+    document.querySelectorAll('.sgChk').forEach(cb => {
+        if (!cb.checked) return;
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'salary_group_ids[]';
+        input.value = cb.value;
+        hidden.appendChild(input);
+        selected.push(cb.dataset.label || cb.value);
+    });
+
+    if (label) {
+        label.textContent = selected.length
+            ? (selected.length <= 2
+                ? selected.join(', ')
+                : `${selected.slice(0, 2).join(', ')} +${selected.length - 2}`)
+            : '— Select Groups —';
+    }
+
+    const all = document.getElementById('sgAll');
+    if (all) {
+        const total   = document.querySelectorAll('.sgChk').length;
+        const checked = document.querySelectorAll('.sgChk:checked').length;
+        all.checked = total > 0 && checked === total;
+        all.indeterminate = checked > 0 && checked < total;
+    }
+}
+
+function toggleSalaryGroupPanel(forceOpen = null) {
+    const panel = document.getElementById('sgPanel');
+    if (!panel) return;
+
+    const shouldOpen = forceOpen === null ? panel.classList.contains('hidden') : forceOpen;
+    panel.classList.toggle('hidden', !shouldOpen);
+}
+
 function toggleAll(master) {
     document.querySelectorAll('.empChk').forEach(cb => cb.checked = master.checked);
     refreshCount();
@@ -232,9 +275,67 @@ function refreshCount() {
     const el = document.getElementById('countSelected');
     if (el) el.textContent = selected;
 }
-document.querySelectorAll('.empChk').forEach(cb => {
-    cb.addEventListener('change', () => refreshCount(cb.dataset.groupId));
+
+function toggleGroup(master, gid) {
+    document.querySelectorAll('.empChk-' + gid).forEach(cb => cb.checked = master.checked);
+    refreshCount();
+    refreshGroupToggle(gid);
+}
+
+function refreshGroupToggle(gid) {
+    const checks = document.querySelectorAll('.empChk-' + gid);
+    const master = document.getElementById('grpCheckAll-' + gid);
+    if (!master || !checks.length) return;
+
+    const checked = Array.from(checks).filter(cb => cb.checked).length;
+    master.checked = checked === checks.length;
+    master.indeterminate = checked > 0 && checked < checks.length;
+}
+
+function syncGroupCheckboxes() {
+    refreshCount();
+    document.querySelectorAll('.grpCheckAll').forEach(master => {
+        const gid = master.dataset.groupId;
+        if (gid) refreshGroupToggle(gid);
+    });
+}
+
+const sgToggle = document.getElementById('sgToggle');
+const sgPanel  = document.getElementById('sgPanel');
+if (sgToggle && sgPanel) {
+    sgToggle.addEventListener('click', (e) => {
+        e.stopPropagation();
+        toggleSalaryGroupPanel();
+    });
+    sgPanel.addEventListener('click', (e) => e.stopPropagation());
+}
+
+document.addEventListener('click', (e) => {
+    if (!sgPanel || !sgToggle) return;
+    if (sgPanel.classList.contains('hidden')) return;
+    if (!sgPanel.contains(e.target) && !sgToggle.contains(e.target)) {
+        toggleSalaryGroupPanel(false);
+    }
 });
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') toggleSalaryGroupPanel(false);
+});
+
+document.querySelectorAll('.sgChk').forEach(cb => {
+    cb.addEventListener('change', setSalaryGroupHiddenInputs);
+});
+document.getElementById('sgAll')?.addEventListener('change', function () {
+    document.querySelectorAll('.sgChk').forEach(cb => cb.checked = this.checked);
+    setSalaryGroupHiddenInputs();
+});
+
+document.querySelectorAll('.empChk').forEach(cb => {
+    cb.addEventListener('change', syncGroupCheckboxes);
+});
+
+setSalaryGroupHiddenInputs();
+syncGroupCheckboxes();
 
 // ===== Per-group export =====
 function exportSelected(format, gid) {
