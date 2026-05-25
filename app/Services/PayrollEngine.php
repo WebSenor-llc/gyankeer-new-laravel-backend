@@ -251,8 +251,10 @@ class PayrollEngine
         // (full-month-attendance assumption, prorated only for absent + HD/2).
         $isContractWorker = false;
         $groupName = (string) ($e->salary_group->salary_group_name ?? '');
-        if (preg_match('/^\s*Cont(r?)a(r?)ctor\b/i', $groupName)) {
-            // Either "Contractor X" or seeded typo "Contarctor X" → contract worker group
+        // Match "Contractor" / "Contarctor" (legacy typo) anywhere in the name —
+        // at the start ("Contractor - Hari Singh"), end ("Gajendra Singh
+        // Kitawat Contractor"), or middle. Case-insensitive.
+        if (preg_match('/Cont(r?)a(r?)ctor/i', $groupName)) {
             $isContractWorker = true;
         }
 

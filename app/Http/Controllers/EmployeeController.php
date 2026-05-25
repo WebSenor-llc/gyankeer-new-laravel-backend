@@ -255,7 +255,14 @@ class EmployeeController extends StubController
             );
         }
 
-        $emp = Employee::create($data);
+        try {
+            $emp = Employee::create($data);
+        } catch (\Throwable $ex) {
+            \Log::error('Employee create failed: ' . $ex->getMessage(), ['data' => $data]);
+            return back()->withInput()->withErrors([
+                'create' => 'Failed to create employee: ' . $ex->getMessage(),
+            ]);
+        }
 
         return redirect()->route('employees.show', $emp->emp_id)
             ->with('status', "Employee #{$emp->emp_id} ({$emp->full_name}) created successfully.");
@@ -301,7 +308,14 @@ class EmployeeController extends StubController
             $data['full_name'] = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
         }
 
-        $emp->update($data);
+        try {
+            $emp->update($data);
+        } catch (\Throwable $ex) {
+            \Log::error('Employee update failed: ' . $ex->getMessage(), ['emp_id' => $empId, 'data' => $data]);
+            return back()->withInput()->withErrors([
+                'update' => 'Failed to update employee: ' . $ex->getMessage(),
+            ]);
+        }
 
         return redirect()->route('employees.show', $emp->emp_id)
             ->with('status', 'Employee updated successfully.');

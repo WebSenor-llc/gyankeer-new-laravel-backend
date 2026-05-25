@@ -460,12 +460,21 @@ class AttendanceLeaveController extends Controller
         $oldGroupId   = $emp->salary_group_id;
 
         // Raw DB update — bypass model casts/observers to avoid silent failures
-        \Illuminate\Support\Facades\DB::table('employees')
-            ->where('emp_id', $req->emp_id)
-            ->update([
-                'salary_group_id' => $req->new_salary_group_id,
-                'updated_at'      => now(),
-            ]);
+        try {
+            $affected = \Illuminate\Support\Facades\DB::table('employees')
+                ->where('emp_id', $req->emp_id)
+                ->update([
+                    'salary_group_id' => $req->new_salary_group_id,
+                    'updated_at'      => now(),
+                ]);
+        } catch (\Throwable $ex) {
+            \Log::error('moveWorker failed: ' . $ex->getMessage(), ['emp_id' => $req->emp_id, 'to_group' => $req->new_salary_group_id]);
+            return back()->with('status', '❌ Move failed: ' . $ex->getMessage());
+        }
+
+        if ($affected === 0) {
+            return back()->with('status', "⚠ No row updated for emp {$req->emp_id} — may be soft-deleted or locked.");
+        }
 
         return back()->with('status',
             "✅ Moved {$emp->full_name} ({$emp->emp_id}) from [{$oldGroupId}] {$oldGroupName} → [{$newGroup->salary_group_id}] {$newGroup->salary_group_name}.");
@@ -601,12 +610,16 @@ class AttendanceLeaveController extends Controller
         // Contractor list for the workers-only page (salary groups whose name
         // starts with "Contractor"). Scoped to active company so only the
         // current company's contractors / labour groups appear in the dropdown.
+        // Contractor list for the workers-only page. Matches "Contractor" /
+        // "Contarctor" (legacy typo) / "Labour" / "Labor" anywhere in the name
+        // — at the start, middle, or end — so users can name groups freely
+        // (e.g. "Gajendra Singh Kitawat Contractor" still shows up here).
         $contractors = $workersOnly
             ? \App\Models\SalaryGroup::when($cid, fn($q) => $q->where('company_id', $cid))
                 ->where(function ($q) {
-                    $q->where('salary_group_name', 'like', 'Contractor%')
-                      ->orWhere('salary_group_name', 'like', '%Contarctor%')      // tolerate seeded typo
-                      ->orWhere('salary_group_name', 'like', '%Labour%')          // BSK -Company Labour
+                    $q->where('salary_group_name', 'like', '%Contractor%')
+                      ->orWhere('salary_group_name', 'like', '%Contarctor%')   // tolerate legacy typo
+                      ->orWhere('salary_group_name', 'like', '%Labour%')
                       ->orWhere('salary_group_name', 'like', '%Labor%');
                 })
                 ->orderBy('salary_group_name')->get()
