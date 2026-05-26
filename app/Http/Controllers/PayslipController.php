@@ -52,7 +52,7 @@ class PayslipController extends Controller
             ->where('period_year', $year)
             ->where('period_month', $month)
             ->firstOrFail();
-
+            
         $company = Company::find($payslip->emp->company_id);
 
         return view('payroll.payslips.show', compact('payslip','company'));

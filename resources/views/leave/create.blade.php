@@ -25,12 +25,22 @@
 
         <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1.5">Employee *</label>
-            <select name="emp_id" required class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm">
-                <option value="">— Select employee —</option>
-                @foreach($employees as $e)
-                    <option value="{{ $e->emp_id }}" @selected(old('emp_id') == $e->emp_id)>{{ $e->emp_id }} — {{ $e->full_name }}</option>
-                @endforeach
-            </select>
+            <div class="relative" id="empSearchWrap">
+                <input type="hidden" name="emp_id" id="empIdHidden" value="{{ old('emp_id') }}" required>
+                <input type="text" id="empSearchInput" autocomplete="off"
+                       placeholder="Type to search by ID or name..."
+                       value="{{ old('emp_id') ? ($employees->firstWhere('emp_id', old('emp_id'))->emp_id ?? '') . ' — ' . ($employees->firstWhere('emp_id', old('emp_id'))->full_name ?? '') : '' }}"
+                       class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm focus:outline-none focus:border-[var(--brand)]">
+                <ul id="empSearchList"
+                    class="hidden absolute z-20 left-0 right-0 mt-1 max-h-60 overflow-y-auto bg-white border border-[var(--line)] rounded-lg shadow-lg text-sm">
+                    @foreach($employees as $e)
+                        <li data-id="{{ $e->emp_id }}" data-label="{{ $e->emp_id }} — {{ $e->full_name }}"
+                            class="px-3 py-1.5 cursor-pointer hover:bg-slate-100">
+                            {{ $e->emp_id }} — {{ $e->full_name }}
+                        </li>
+                    @endforeach
+                </ul>
+            </div>
         </div>
 
         <div>
@@ -78,4 +88,42 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const wrap   = document.getElementById('empSearchWrap');
+    const input  = document.getElementById('empSearchInput');
+    const hidden = document.getElementById('empIdHidden');
+    const list   = document.getElementById('empSearchList');
+    if (!wrap || !input || !hidden || !list) return;
+    const items = Array.from(list.querySelectorAll('li'));
+
+    const filter = () => {
+        const q = input.value.trim().toLowerCase();
+        let any = false;
+        items.forEach(li => {
+            const match = !q || li.dataset.label.toLowerCase().includes(q);
+            li.classList.toggle('hidden', !match);
+            if (match) any = true;
+        });
+        list.classList.toggle('hidden', !any);
+    };
+
+    input.addEventListener('focus', filter);
+    input.addEventListener('input', () => { hidden.value = ''; filter(); });
+
+    items.forEach(li => {
+        li.addEventListener('mousedown', e => {
+            e.preventDefault();
+            hidden.value = li.dataset.id;
+            input.value = li.dataset.label;
+            list.classList.add('hidden');
+        });
+    });
+
+    document.addEventListener('click', e => {
+        if (!wrap.contains(e.target)) list.classList.add('hidden');
+    });
+});
+</script>
 @endsection

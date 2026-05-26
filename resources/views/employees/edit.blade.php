@@ -120,6 +120,7 @@
                 {!! $f('current_da',     'DA',        $emp->current_da,     'number', 'step="0.01"')!!}
                 {!! $f('current_conv',   'Conveyance',$emp->current_conv)!!}
                 {!! $f('current_med',    'Medical',   $emp->current_med)!!}
+                {!! $f('education_allow','Education', $emp->education_allow,'number', 'step="0.01"')!!}
                 {!! $f('current_spl',    'Special',   $emp->current_spl,    'number', 'step="0.01"')!!}
                 {!! $f('current_gross',  'Gross',     $emp->current_gross,  'number', 'step="0.01"')!!}
                 {!! $f('current_ctc',    'CTC',       $emp->current_ctc,    'number', 'step="0.01"')!!}
@@ -166,4 +167,27 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const gross = document.querySelector('input[name="current_gross"]');
+    if (!gross) return;
+    const form = gross.form || gross.closest('form');
+    if (!form) return;
+    const parts = ['current_basic','current_hra','current_da','current_conv','current_med','education_allow','current_spl'];
+    const recalc = () => {
+        let sum = 0;
+        parts.forEach(n => {
+            const el = form.querySelector('[name="'+n+'"]');
+            const v = parseFloat(el && el.value);
+            if (!isNaN(v)) sum += v;
+        });
+        gross.value = sum ? sum.toFixed(2) : '';
+    };
+    parts.forEach(n => {
+        const el = form.querySelector('[name="'+n+'"]');
+        if (el) el.addEventListener('input', recalc);
+    });
+});
+</script>
 @endsection

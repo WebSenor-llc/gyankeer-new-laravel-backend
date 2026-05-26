@@ -957,7 +957,7 @@ class AttendanceLeaveController extends Controller
             ->when($cid, fn($q) => $q->where('company_id', $cid))
             ->orderBy('full_name')
             ->get(['emp_id', 'full_name']);
-        $leaveTypes = LeaveType::orderBy('leave_code')->get();
+        $leaveTypes = LeaveType::where('active_flag', true)->orderBy('leave_code')->get();
         return view('leave.create', compact('employees', 'leaveTypes'));
     }
 
