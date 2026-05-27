@@ -161,7 +161,9 @@ class StatutoryController extends Controller
                     'epf_wage_capped'  => $this->pfWageFromPayslip($p),
                     'eps_wage_capped'  => $this->pfWageFromPayslip($p),
                     'edli_wage_capped' => $this->pfWageFromPayslip($p),
-                    'ee_share_12pct'   => (float) $p->epf_emp,
+                    // EPFO Member-12% column = mandatory EPF EE share + VPF.
+                    // VPF flows into the same EPF member account, so it's reported here.
+                    'ee_share_12pct'   => (float) $p->epf_emp + (float) ($p->vpf ?? 0),
                     'eps_8_33'         => (float) $p->eps,
                     'er_share_3_67'    => (float) $p->employer_pf,
                     'edli_0_5'         => (float) $p->edli,
