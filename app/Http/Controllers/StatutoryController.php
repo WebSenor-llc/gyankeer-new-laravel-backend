@@ -37,14 +37,20 @@ class StatutoryController extends Controller
         $cid           = (int) session('active_company_id', 0);
         $salaryGroupId = (int) $req->input('salary_group_id', 0);
 
-        $rows = PfEcrRecord::where('period_year', $year)
+        // Pick latest ECR row per (emp_id, company_id) — defends against any
+        // duplicate rows produced by concurrent Generate clicks.
+        $latestIds = PfEcrRecord::where('period_year', $year)
             ->where('period_month', $month)
             ->when($cid, fn($q) => $q->where('company_id', $cid))
             ->when($salaryGroupId, fn($q) => $q->whereIn(
                 'emp_id',
                 \App\Models\Employee::where('salary_group_id', $salaryGroupId)->pluck('emp_id')
             ))
-            ->get();
+            ->selectRaw('MAX(ecr_id) as ecr_id')
+            ->groupBy('emp_id', 'company_id')
+            ->pluck('ecr_id');
+
+        $rows = PfEcrRecord::whereIn('ecr_id', $latestIds)->get();
 
         $totals = [
             'ee'    => $rows->sum('ee_share_12pct'),
@@ -138,29 +144,33 @@ class StatutoryController extends Controller
             // Float preserved — half-day LOP (e.g. 1.5) stays as 1.5, not 2.
             $ncpDays = (float) $p->lop_days;
 
-            \App\Models\PfEcrRecord::create([
-                'period_year'      => $year,
-                'period_month'     => $month,
-                'company_id'       => $emp->company_id,
-                'emp_id'           => $emp->emp_id,
-                'uan'              => $emp->uan ?? '',
-                'member_name'      => $emp->full_name ?? '',
-                // gross + the three capped wage columns: PF / EPS / EDLI all
-                // computed on the same wage base (Basic + DA + Conv + Med + Spl,
-                // capped at ₹15,000) per the company's PF rule.
-                'gross_wage'       => (float) $p->gross_earnings,
-                'epf_wage_capped'  => $this->pfWageFromPayslip($p),
-                'eps_wage_capped'  => $this->pfWageFromPayslip($p),
-                'edli_wage_capped' => $this->pfWageFromPayslip($p),
-                'ee_share_12pct'   => (float) $p->epf_emp,
-                'eps_8_33'         => (float) $p->eps,
-                'er_share_3_67'    => (float) $p->employer_pf,
-                'edli_0_5'         => (float) $p->edli,
-                'pf_admin_0_5'     => (float) $p->pf_admin,
-                'ncp_days'         => $ncpDays,
-                'lop_amount'       => 0,
-                'filed_status'     => 'Generated',
-            ]);
+            \App\Models\PfEcrRecord::updateOrCreate(
+                [
+                    'period_year'  => $year,
+                    'period_month' => $month,
+                    'company_id'   => $emp->company_id,
+                    'emp_id'       => $emp->emp_id,
+                ],
+                [
+                    'uan'              => $emp->uan ?? '',
+                    'member_name'      => $emp->full_name ?? '',
+                    // gross + the three capped wage columns: PF / EPS / EDLI all
+                    // computed on the same wage base (Basic + DA + Conv + Med + Spl,
+                    // capped at ₹15,000) per the company's PF rule.
+                    'gross_wage'       => (float) $p->gross_earnings,
+                    'epf_wage_capped'  => $this->pfWageFromPayslip($p),
+                    'eps_wage_capped'  => $this->pfWageFromPayslip($p),
+                    'edli_wage_capped' => $this->pfWageFromPayslip($p),
+                    'ee_share_12pct'   => (float) $p->epf_emp,
+                    'eps_8_33'         => (float) $p->eps,
+                    'er_share_3_67'    => (float) $p->employer_pf,
+                    'edli_0_5'         => (float) $p->edli,
+                    'pf_admin_0_5'     => (float) $p->pf_admin,
+                    'ncp_days'         => $ncpDays,
+                    'lop_amount'       => 0,
+                    'filed_status'     => 'Generated',
+                ]
+            );
             $inserted++;
         }
 
