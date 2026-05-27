@@ -13,9 +13,14 @@
     {{-- Header card --}}
     <div class="card p-5 mb-4">
         <div class="flex items-start gap-4">
-            <div class="w-16 h-16 rounded-full grad-red text-white text-2xl font-bold flex items-center justify-center flex-shrink-0">
-                {{ strtoupper(substr($emp->full_name ?? 'U', 0, 1)) }}
-            </div>
+            @if($emp->photo_path)
+                <img src="{{ asset('storage/'.$emp->photo_path) }}" alt="{{ $emp->full_name }}"
+                     class="w-16 h-16 rounded-full object-cover flex-shrink-0 border border-[var(--line)]">
+            @else
+                <div class="w-16 h-16 rounded-full grad-red text-white text-2xl font-bold flex items-center justify-center flex-shrink-0">
+                    {{ strtoupper(substr($emp->full_name ?? 'U', 0, 1)) }}
+                </div>
+            @endif
             <div class="flex-1">
                 <h1 class="text-xl font-bold">{{ $emp->full_name ?? 'Unnamed' }}</h1>
                 <div class="text-sm text-slate-500 mt-1">

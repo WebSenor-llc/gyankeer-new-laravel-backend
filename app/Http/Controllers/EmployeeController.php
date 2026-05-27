@@ -8,6 +8,7 @@ use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\SalaryGroup;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * Employee Controller — handles the Manage Employee module.
@@ -207,6 +208,7 @@ class EmployeeController extends StubController
             'aadhar_id_no'    => 'nullable|string|max:12',
             'personal_email'  => 'nullable|email',
             'company_email'   => 'nullable|email',
+            'photo'           => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
         ]);
 
         $editable = [
@@ -257,6 +259,10 @@ class EmployeeController extends StubController
 
         try {
             $emp = Employee::create($data);
+            if ($req->hasFile('photo')) {
+                $emp->photo_path = $this->storeEmployeePhoto($req->file('photo'), $emp->emp_id);
+                $emp->save();
+            }
         } catch (\Throwable $ex) {
             \Log::error('Employee create failed: ' . $ex->getMessage(), ['data' => $data]);
             return back()->withInput()->withErrors([
@@ -284,8 +290,13 @@ class EmployeeController extends StubController
     {
         $emp = Employee::where('emp_id', $empId)->firstOrFail();
 
+        $req->validate([
+            'photo' => 'nullable|image|mimes:jpeg,jpg,png,webp|max:2048',
+        ]);
+
         $editable = [
             'first_name','middle_name','last_name','full_name','fathers_name','mothers_name',
+            'relation_prefix','relative_name','spouse_name',
             'dob','gender','marital_status','blood_group','nationality',
             'personal_mobile','personal_email','company_email','company_mobile',
             'dept_id','designation_id','salary_group_id','employment_status','employee_type',
@@ -310,6 +321,16 @@ class EmployeeController extends StubController
 
         try {
             $emp->update($data);
+
+            if ($req->hasFile('photo')) {
+                $this->deleteEmployeePhoto($emp->photo_path);
+                $emp->photo_path = $this->storeEmployeePhoto($req->file('photo'), $emp->emp_id);
+                $emp->save();
+            } elseif ($req->boolean('remove_photo')) {
+                $this->deleteEmployeePhoto($emp->photo_path);
+                $emp->photo_path = null;
+                $emp->save();
+            }
         } catch (\Throwable $ex) {
             \Log::error('Employee update failed: ' . $ex->getMessage(), ['emp_id' => $empId, 'data' => $data]);
             return back()->withInput()->withErrors([
@@ -319,5 +340,21 @@ class EmployeeController extends StubController
 
         return redirect()->route('employees.show', $emp->emp_id)
             ->with('status', 'Employee updated successfully.');
+    }
+
+    /** Store an uploaded photo on the `public` disk and return its relative path. */
+    private function storeEmployeePhoto(\Illuminate\Http\UploadedFile $file, int $empId): string
+    {
+        $ext  = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'jpg');
+        $name = 'emp_'.$empId.'_'.time().'.'.$ext;
+        return $file->storeAs('employees/photos', $name, 'public');
+    }
+
+    /** Remove the previous photo from the `public` disk if any. */
+    private function deleteEmployeePhoto(?string $path): void
+    {
+        if ($path && Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->delete($path);
+        }
     }
 }

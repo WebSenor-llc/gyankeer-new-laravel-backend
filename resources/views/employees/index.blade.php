@@ -51,11 +51,25 @@
         <tbody>
             @forelse($employees as $e)
             <tr class="hover:bg-slate-50">
-                <td><div class="w-9 h-9 rounded-full grad-red text-white text-[11px] font-bold flex items-center justify-center">{{ strtoupper(substr($e->first_name, 0, 1).substr($e->last_name, 0, 1)) }}</div></td>
+                <td>
+                    @if($e->photo_path)
+                        <img src="{{ asset('storage/'.$e->photo_path) }}" alt=""
+                             class="w-9 h-9 rounded-full object-cover border border-[var(--line)]">
+                    @else
+                        <div class="w-9 h-9 rounded-full grad-red text-white text-[11px] font-bold flex items-center justify-center">{{ strtoupper(substr($e->first_name, 0, 1).substr($e->last_name, 0, 1)) }}</div>
+                    @endif
+                </td>
                 <td class="font-mono">{{ $e->emp_id }}</td>
                 <td><a href="{{ route('employees.show', $e->emp_id) }}" class="text-[var(--brand)] hover:underline">{{ $e->full_name }}</a></td>
                 <td class="font-mono text-[11px]">{{ $e->third_party_code }}</td>
-                <td>{{ $e->relative_name }}</td>
+                <td>
+                    @php
+                        $isFemaleMarried = $e->marital_status === 'Married' && in_array(strtolower($e->gender ?? ''), ['female','f']);
+                        $relName   = $e->relative_name ?: ($isFemaleMarried ? ($e->spouse_name ?: $e->fathers_name) : ($e->fathers_name ?: $e->spouse_name));
+                        $relPrefix = $e->relation_prefix ?: ($isFemaleMarried && $e->spouse_name ? 'W/O' : ($e->fathers_name ? 'S/O' : ''));
+                    @endphp
+                    {{ trim(($relPrefix ? $relPrefix.' ' : '').($relName ?: '—')) }}
+                </td>
                 <td><span class="pill pill-{{ $e->employee_type === 'ST' ? 'info' : ($e->employee_type === 'SB' ? 'warn' : 'muted') }}">{{ $e->employee_type }}</span></td>
                 <td>{{ $e->department?->dept_name }}</td>
                 <td>{{ $e->designation?->designation_name }}</td>

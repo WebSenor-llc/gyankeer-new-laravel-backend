@@ -20,8 +20,25 @@
         </div>
     @endif
 
-    <form method="POST" action="{{ route('employees.store') }}" class="card p-5 space-y-6">
+    <form method="POST" action="{{ route('employees.store') }}" class="card p-5 space-y-6" enctype="multipart/form-data">
         @csrf
+
+        {{-- Photo upload --}}
+        <div>
+            <h2 class="font-semibold mb-3 text-sm uppercase tracking-wide text-slate-600 border-b border-[var(--line)] pb-2">Employee Photo</h2>
+            <div class="flex items-center gap-4">
+                <div id="photoPreview"
+                     class="w-24 h-24 rounded-full grad-red text-white text-2xl font-bold flex items-center justify-center overflow-hidden border border-[var(--line)] bg-slate-100 bg-center bg-cover">
+                    <span id="photoInitials">+</span>
+                </div>
+                <div class="flex-1">
+                    <input type="file" name="photo" accept="image/jpeg,image/png,image/webp"
+                           onchange="(function(i){if(!i.files[0])return;var r=new FileReader();r.onload=function(e){var p=document.getElementById('photoPreview');p.style.backgroundImage='url('+e.target.result+')';document.getElementById('photoInitials').style.display='none';};r.readAsDataURL(i.files[0]);})(this)"
+                           class="block text-sm">
+                    <p class="text-[11px] text-slate-500 mt-1">JPG / PNG / WebP. Max 2 MB. Square images look best.</p>
+                </div>
+            </div>
+        </div>
 
         @php
             $f = function($name, $label, $value='', $type='text', $extra='') {
