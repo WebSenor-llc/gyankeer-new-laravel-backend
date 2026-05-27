@@ -37,6 +37,14 @@ class StatutoryController extends Controller
         $cid           = (int) session('active_company_id', 0);
         $salaryGroupId = (int) $req->input('salary_group_id', 0);
 
+        // Exclude employees who left before this period (date_of_relieving <
+        // first-of-month). Mid-period leavers stay — they were paid this month
+        // and their PF must still be filed on EPFO.
+        $periodStart    = sprintf('%04d-%02d-01', $year, $month);
+        $relievedEmpIds = \App\Models\Employee::whereNotNull('date_of_relieving')
+            ->whereDate('date_of_relieving', '<', $periodStart)
+            ->pluck('emp_id');
+
         // Pick latest ECR row per (emp_id, company_id) — defends against any
         // duplicate rows produced by concurrent Generate clicks.
         $latestIds = PfEcrRecord::where('period_year', $year)
@@ -46,6 +54,7 @@ class StatutoryController extends Controller
                 'emp_id',
                 \App\Models\Employee::where('salary_group_id', $salaryGroupId)->pluck('emp_id')
             ))
+            ->when($relievedEmpIds->isNotEmpty(), fn($q) => $q->whereNotIn('emp_id', $relievedEmpIds))
             ->selectRaw('MAX(ecr_id) as ecr_id')
             ->groupBy('emp_id', 'company_id')
             ->pluck('ecr_id');
@@ -116,10 +125,18 @@ class StatutoryController extends Controller
             ? \App\Models\Employee::where('salary_group_id', $salaryGroupId)->pluck('emp_id')
             : null;
 
+        // Exclude employees who left before this period — their PF was filed in
+        // the period of separation, not now.
+        $periodStart    = sprintf('%04d-%02d-01', $year, $month);
+        $relievedEmpIds = \App\Models\Employee::whereNotNull('date_of_relieving')
+            ->whereDate('date_of_relieving', '<', $periodStart)
+            ->pluck('emp_id');
+
         $payslips = \App\Models\Payslip::with('emp')
             ->whereIn('run_id', $runIds)
             ->where('epf_emp', '>', 0)   // only employees with PF deduction
             ->when($groupEmpIds !== null, fn($q) => $q->whereIn('emp_id', $groupEmpIds))
+            ->when($relievedEmpIds->isNotEmpty(), fn($q) => $q->whereNotIn('emp_id', $relievedEmpIds))
             ->get();
 
         if ($payslips->isEmpty()) {
@@ -583,6 +600,12 @@ class StatutoryController extends Controller
         $salaryGroupId = (int) $req->input('salary_group_id', 0);
         $format        = strtolower($req->input('format', 'pdf'));
 
+        // Exclude employees who left before this period.
+        $periodStart    = sprintf('%04d-%02d-01', $year, $month);
+        $relievedEmpIds = \App\Models\Employee::whereNotNull('date_of_relieving')
+            ->whereDate('date_of_relieving', '<', $periodStart)
+            ->pluck('emp_id');
+
         $rows = PfEcrRecord::where('period_year', $year)
             ->where('period_month', $month)
             ->when($cid, fn($q) => $q->where('company_id', $cid))
@@ -590,6 +613,7 @@ class StatutoryController extends Controller
                 'emp_id',
                 \App\Models\Employee::where('salary_group_id', $salaryGroupId)->pluck('emp_id')
             ))
+            ->when($relievedEmpIds->isNotEmpty(), fn($q) => $q->whereNotIn('emp_id', $relievedEmpIds))
             ->orderBy('emp_id')
             ->get();
 
