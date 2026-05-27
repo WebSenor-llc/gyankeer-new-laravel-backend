@@ -221,6 +221,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/salary-slip',     'salarySlip')     ->name('salary-slip');
         Route::get('/salary-slip-pdf', 'salarySlipPDF')  ->name('salary-slip.pdf');
         Route::get('/hr-letters',      'hrLetters')      ->name('hr-letters');
+        Route::get('/hr-letters/{empId}/{type}/download', 'hrLetterDownload')->name('hr-letters.download');
         Route::get('/bank-sheet',      'bankSheet')      ->name('bank-sheet');
         Route::get('/increment',       'incrementReport')->name('increment');
         Route::get('/headcount',       'headcount')      ->name('headcount');

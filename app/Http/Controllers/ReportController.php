@@ -54,8 +54,71 @@ class ReportController extends Controller
 
     public function hrLetters(Request $req)
     {
-        $employees = Employee::where('active_flag', true)->paginate(50);
-        return view('reports.hr-letters', compact('employees'));
+        $cid = (int) session('active_company_id', 0);
+        $q = Employee::with('designation')->where('active_flag', true);
+        if ($cid) $q->where('company_id', $cid);
+
+        if ($s = trim((string) $req->input('q'))) {
+            $q->where(function ($w) use ($s) {
+                $w->where('full_name', 'like', "%{$s}%")
+                  ->orWhere('first_name', 'like', "%{$s}%")
+                  ->orWhere('last_name', 'like', "%{$s}%")
+                  ->orWhere('emp_code', 'like', "%{$s}%");
+            });
+        }
+        $employees = $q->orderBy('emp_id')->paginate(50)->withQueryString();
+        $letterTypes = $this->hrLetterTypes();
+        return view('reports.hr-letters', compact('employees', 'letterTypes'));
+    }
+
+    /** Letter type slug => display label. */
+    private function hrLetterTypes(): array
+    {
+        return [
+            'offer'        => 'Offer Letter',
+            'appointment'  => 'Appointment Letter',
+            'confirmation' => 'Confirmation Letter',
+            'experience'   => 'Experience Letter',
+            'relieving'    => 'Relieving Letter',
+            'nda'          => 'NDA',
+        ];
+    }
+
+    /**
+     * Stream a Word (.doc) HR letter for a single employee.
+     * Uses HTML wrapped in MS Word XML headers — opens natively in Word/LibreOffice.
+     */
+    public function hrLetterDownload(Request $req, $empId, $type)
+    {
+        $types = $this->hrLetterTypes();
+        abort_unless(array_key_exists($type, $types), 404, 'Unknown letter type.');
+
+        $employee = Employee::with(['company', 'designation', 'department'])
+            ->where('emp_id', $empId)
+            ->firstOrFail();
+
+        $today = now();
+        $body  = view("reports.hr-letters._{$type}", [
+            'e'       => $employee,
+            'c'       => $employee->company,
+            'today'   => $today,
+            'title'   => $types[$type],
+        ])->render();
+
+        $html = view('reports.hr-letters._wrapper', [
+            'title' => $types[$type] . ' - ' . ($employee->full_name ?: $employee->emp_code),
+            'body'  => $body,
+        ])->render();
+
+        $slug = preg_replace('/[^A-Za-z0-9_-]+/', '_',
+            ($employee->emp_code ?: $employee->emp_id) . '_' . ($employee->full_name ?: 'employee') . '_' . $type);
+        $filename = "{$slug}.doc";
+
+        return response($html, 200, [
+            'Content-Type'        => 'application/msword; charset=UTF-8',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control'       => 'no-store, no-cache',
+        ]);
     }
 
     public function bankSheet(Request $req)
