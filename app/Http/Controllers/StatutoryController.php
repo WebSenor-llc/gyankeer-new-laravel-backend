@@ -59,7 +59,7 @@ class StatutoryController extends Controller
             ->groupBy('emp_id', 'company_id')
             ->pluck('ecr_id');
 
-        $rows = PfEcrRecord::whereIn('ecr_id', $latestIds)->get();
+        $rows = PfEcrRecord::with('emp:emp_id,epf_member_id')->whereIn('ecr_id', $latestIds)->get();
 
         $totals = [
             'ee'    => $rows->sum('ee_share_12pct'),

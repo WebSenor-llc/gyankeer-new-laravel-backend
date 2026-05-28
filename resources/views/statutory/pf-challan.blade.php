@@ -91,7 +91,7 @@
                         <td class="font-mono text-xs">{{ $r->emp_id }}</td>
                         <td>{{ $r->member_name ?? '—' }}</td>
                         <td>{{ $r->uan ?? '—' }}</td>
-                        <td>{{ $r->member_id_pf ?? '—' }}</td>
+                        <td>{{ $r->emp->epf_member_id ?? '—' }}</td>
                         <td>&#8377;{{ number_format($r->gross_wage ?? 0, 0) }}</td>
                         <td>&#8377;{{ number_format($r->epf_wage_capped ?? 0, 0) }}</td>
                         <td>&#8377;{{ number_format($r->ee_share_12pct ?? 0, 0) }}</td>
