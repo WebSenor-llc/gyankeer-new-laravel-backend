@@ -39,12 +39,97 @@ class SalaryStructureController extends Controller
         if ($req->filled('salary_group_id')) $q->where('salary_group_id', $req->salary_group_id);
         if ($req->filled('emp_type'))        $q->where('employee_type', $req->emp_type);
 
+        $format = $req->input('export');
+        if (in_array($format, ['csv', 'xls'], true)) {
+            return $this->export($format, (clone $q)->orderBy('emp_id')->get());
+        }
+
         $employees = $q->orderBy('emp_id')->paginate(50)->appends($req->query());
 
         $departments  = Department::when($cid, fn($x) => $x->where('company_id', $cid))->orderBy('dept_name')->get();
         $salaryGroups = SalaryGroup::when($cid, fn($x) => $x->where('company_id', $cid))->orderBy('salary_group_name')->get();
 
         return view('payroll.manage-salary.index', compact('employees','departments','salaryGroups'));
+    }
+
+    /**
+     * CSV / Excel export of the filtered employee salary configuration list.
+     * Uses HTML-as-XLS trick (same as StatutoryController / LeaveBalanceController) — no extra package.
+     */
+    protected function export(string $format, $employees)
+    {
+        $headers = [
+            'Emp ID','T.P. Code','Name','Father Name','Type','DOB','DOJ',
+            'Designation','Salary Group','Department',
+            'UAN','EPF Member ID','ESI IP No','Bank A/C','IFSC',
+            'Basic','DA','HRA','Conveyance','Medical','Special/Other','Gross',
+        ];
+
+        $fmtDate = fn($d) => $d ? \Carbon\Carbon::parse($d)->format('d-M-Y') : '';
+
+        $data = $employees->map(fn($e) => [
+            $e->emp_id,
+            $e->third_party_code,
+            $e->full_name,
+            $e->fathers_name,
+            $e->employee_type,
+            $fmtDate($e->dob),
+            $fmtDate($e->date_of_joining),
+            $e->designation->designation_name ?? '',
+            $e->salary_group->salary_group_name ?? '',
+            $e->department->dept_name ?? '',
+            $e->uan,
+            $e->epf_member_id,
+            $e->esi_ip_no,
+            $e->bank_account_no,
+            $e->bank_ifsc,
+            (float)($e->current_basic ?? 0),
+            (float)($e->current_da    ?? 0),
+            (float)($e->current_hra   ?? 0),
+            (float)($e->current_conv  ?? 0),
+            (float)($e->current_med   ?? 0),
+            (float)($e->current_spl   ?? 0),
+            (float)($e->current_gross ?? 0),
+        ])->all();
+
+        $stem = 'manage-salary-' . date('Y-m-d');
+
+        if ($format === 'csv') {
+            return response()->streamDownload(function () use ($headers, $data) {
+                $h = fopen('php://output', 'w');
+                fwrite($h, "\xEF\xBB\xBF");
+                fputcsv($h, $headers);
+                foreach ($data as $r) fputcsv($h, $r);
+                fclose($h);
+            }, "{$stem}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }
+
+        $html  = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel'>";
+        $html .= "<head><meta charset='UTF-8'><title>Manage Salary</title>";
+        $html .= "<style>td,th{border:1px solid #888;padding:4px 6px;font-size:11px} th{background:#E5E7EB;font-weight:bold} td.num{text-align:right}</style></head><body>";
+        $html .= "<h3>Manage Salary — Per Employee Configuration</h3><table><thead><tr>";
+        foreach ($headers as $h) $html .= "<th>" . e($h) . "</th>";
+        $html .= "</tr></thead><tbody>";
+        foreach ($data as $r) {
+            $html .= "<tr>";
+            foreach ($r as $cell) {
+                if (is_numeric($cell)) {
+                    $val     = (float) $cell;
+                    $hasFrac = abs($val - round($val)) > 0.0001;
+                    $mask    = $hasFrac ? '#\\,##0.00' : '#\\,##0';
+                    $html .= "<td class='num' style=\"mso-number-format:'{$mask}'\">" . e((string)$cell) . "</td>";
+                } else {
+                    $html .= "<td style='mso-number-format:\"\\@\"'>" . e((string)$cell) . "</td>";
+                }
+            }
+            $html .= "</tr>";
+        }
+        $html .= "</tbody></table></body></html>";
+
+        return response($html, 200, [
+            'Content-Type'        => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $stem . '.xls"',
+        ]);
     }
 
     public function configForm($empId)

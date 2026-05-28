@@ -7,6 +7,8 @@
 <div class="flex items-center justify-between mb-3">
     <h1 class="text-xl font-bold">Manage Employee</h1>
     <div class="flex gap-2">
+        <a href="{{ route('employees.index', array_merge(request()->query(), ['export' => 'xls'])) }}" class="tb-btn" style="background:#16a34a;color:#fff">⬇ Excel</a>
+        <a href="{{ route('employees.index', array_merge(request()->query(), ['export' => 'csv'])) }}" class="tb-btn">⬇ CSV</a>
         <form action="{{ route('employees.import') }}" method="POST" enctype="multipart/form-data" class="inline">
             @csrf
             <button class="tb-btn">⤒ Bulk Import</button>

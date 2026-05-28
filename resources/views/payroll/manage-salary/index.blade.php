@@ -37,6 +37,8 @@
         @if(request('search_q') || request('dept_id') || request('salary_group_id') || request('emp_type'))
             <a href="{{ route('manage-salary.index') }}" class="tb-btn">Clear</a>
         @endif
+        <a href="{{ route('manage-salary.index', array_merge(request()->query(), ['export' => 'xls'])) }}" class="tb-btn" style="background:#16a34a;color:#fff">⬇ Excel</a>
+        <a href="{{ route('manage-salary.index', array_merge(request()->query(), ['export' => 'csv'])) }}" class="tb-btn">⬇ CSV</a>
     </form>
 
     {{-- Listing — SUGAM-style columns --}}

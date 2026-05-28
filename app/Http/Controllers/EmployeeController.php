@@ -23,7 +23,7 @@ class EmployeeController extends StubController
     public function index(Request $req)
     {
         try {
-            $query = Employee::with(['department', 'designation', 'salary_group']);
+            $query = Employee::with(['department', 'designation', 'salary_group', 'company']);
 
             // Active-company scope from session (header dropdown)
             $cid = (int) session('active_company_id', 0);
@@ -45,6 +45,11 @@ class EmployeeController extends StubController
             if ($req->filled('emp_type')) $query->where('employee_type',     $req->emp_type);
             if ($req->filled('status'))   $query->where('employment_status', $req->status);
 
+            $format = $req->input('export');
+            if (in_array($format, ['csv', 'xls'], true)) {
+                return $this->exportEmployees($format, (clone $query)->orderBy('emp_id')->get());
+            }
+
             return view('employees.index', [
                 'employees'    => $query->orderBy('emp_id')->paginate(50),
                 'departments'  => Department::when($cid, fn($q) => $q->where('company_id', $cid))->get(),
@@ -53,6 +58,96 @@ class EmployeeController extends StubController
         } catch (\Throwable $e) {
             return $this->stub('index — ' . $e->getMessage());
         }
+    }
+
+    /**
+     * CSV / Excel export of Manage Employee listing.
+     * Uses HTML-as-XLS trick (same as LeaveBalanceController / StatutoryController) — no extra package.
+     */
+    protected function exportEmployees(string $format, $employees)
+    {
+        $headers = [
+            'Emp ID','T.P. Code','Name','Father/Husband','Relation','Gender','DOB','Marital Status',
+            'Type','Status','Company','Department','Designation','Salary Group',
+            'DOJ','Mobile','Email','PAN','Aadhaar','UAN','EPF Member ID','ESI IP No',
+            'Bank A/C','IFSC','Address','Current Gross',
+        ];
+
+        $fmtDate = fn($d) => $d ? \Carbon\Carbon::parse($d)->format('d-M-Y') : '';
+
+        $data = $employees->map(function ($e) use ($fmtDate) {
+            $isFemaleMarried = $e->marital_status === 'Married' && in_array(strtolower($e->gender ?? ''), ['female','f']);
+            $relName   = $e->relative_name ?: ($isFemaleMarried ? ($e->spouse_name ?: $e->fathers_name) : ($e->fathers_name ?: $e->spouse_name));
+            $relPrefix = $e->relation_prefix ?: ($isFemaleMarried && $e->spouse_name ? 'W/O' : ($e->fathers_name ? 'S/O' : ''));
+
+            return [
+                $e->emp_id,
+                $e->third_party_code,
+                $e->full_name,
+                $relName,
+                $relPrefix,
+                $e->gender,
+                $fmtDate($e->dob),
+                $e->marital_status,
+                $e->employee_type,
+                $e->employment_status,
+                $e->company->company_name ?? '',
+                $e->department->dept_name ?? '',
+                $e->designation->designation_name ?? '',
+                $e->salary_group->salary_group_name ?? '',
+                $fmtDate($e->date_of_joining),
+                $e->mobile_no,
+                $e->email,
+                $e->pan_no,
+                $e->aadhaar_no,
+                $e->uan,
+                $e->epf_member_id,
+                $e->esi_ip_no,
+                $e->bank_account_no,
+                $e->bank_ifsc,
+                $e->current_address ?? $e->permanent_address ?? '',
+                (float)($e->current_gross ?? 0),
+            ];
+        })->all();
+
+        $stem = 'manage-employee-' . date('Y-m-d');
+
+        if ($format === 'csv') {
+            return response()->streamDownload(function () use ($headers, $data) {
+                $h = fopen('php://output', 'w');
+                fwrite($h, "\xEF\xBB\xBF");
+                fputcsv($h, $headers);
+                foreach ($data as $r) fputcsv($h, $r);
+                fclose($h);
+            }, "{$stem}.csv", ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }
+
+        $html  = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:x='urn:schemas-microsoft-com:office:excel'>";
+        $html .= "<head><meta charset='UTF-8'><title>Manage Employee</title>";
+        $html .= "<style>td,th{border:1px solid #888;padding:4px 6px;font-size:11px} th{background:#E5E7EB;font-weight:bold} td.num{text-align:right}</style></head><body>";
+        $html .= "<h3>Manage Employee — Master List</h3><table><thead><tr>";
+        foreach ($headers as $h) $html .= "<th>" . e($h) . "</th>";
+        $html .= "</tr></thead><tbody>";
+        foreach ($data as $r) {
+            $html .= "<tr>";
+            foreach ($r as $cell) {
+                if (is_numeric($cell)) {
+                    $val     = (float) $cell;
+                    $hasFrac = abs($val - round($val)) > 0.0001;
+                    $mask    = $hasFrac ? '#\\,##0.00' : '#\\,##0';
+                    $html .= "<td class='num' style=\"mso-number-format:'{$mask}'\">" . e((string)$cell) . "</td>";
+                } else {
+                    $html .= "<td style='mso-number-format:\"\\@\"'>" . e((string)$cell) . "</td>";
+                }
+            }
+            $html .= "</tr>";
+        }
+        $html .= "</tbody></table></body></html>";
+
+        return response($html, 200, [
+            'Content-Type'        => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $stem . '.xls"',
+        ]);
     }
 
     public function exitList(Request $req)
