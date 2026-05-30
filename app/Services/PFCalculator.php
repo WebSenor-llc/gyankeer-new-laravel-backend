@@ -43,17 +43,30 @@ class PFCalculator
 
     /**
      * Compute all five PF buckets on the company's PF wage.
+     *
+     * EPFO convention for the employer share (A/C 1):
+     *     ER = Employee Total (12%)  −  EPS (8.33%)
+     * NOT  ER = round(3.67% × wage)
+     *
+     * This matters at the cap: 15000 × 3.67% = 550.50 → rounds to 551 if you
+     * compute it independently, but the EPFO portal expects 1800 − 1250 = 550.
+     * Computing it as the difference also guarantees EE always exactly equals
+     * EPS + ER on the ECR, which the EPFO upload validates.
      */
     public function compute($basicPlusDAOrComponents): array
     {
         $wage = $this->pfWage($basicPlusDAOrComponents);
 
+        $employee = round($wage * config('hreasy.pf.employee_rate') / 100, 2);
+        $eps      = round($wage * config('hreasy.pf.eps_rate')      / 100, 2);
+        $employer = round($employee - $eps, 2);          // ← EE − EPS, NOT a fresh 3.67%
+
         return [
             'wage'     => $wage,
-            'employee' => round($wage * config('hreasy.pf.employee_rate') / 100, 2),
-            'employer' => round($wage * config('hreasy.pf.employer_rate') / 100, 2),
-            'eps'      => round($wage * config('hreasy.pf.eps_rate') / 100, 2),
-            'edli'     => round($wage * config('hreasy.pf.edli_rate') / 100, 2),
+            'employee' => $employee,
+            'employer' => $employer,
+            'eps'      => $eps,
+            'edli'     => round($wage * config('hreasy.pf.edli_rate')  / 100, 2),
             'admin'    => round($wage * config('hreasy.pf.admin_rate') / 100, 2),
         ];
     }
