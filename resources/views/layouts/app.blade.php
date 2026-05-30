@@ -121,7 +121,7 @@
             <details name="sidebarnav" @if($isAttendance) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Attendance &amp; Leave</summary>
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('attendance.daily') }}"         class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.daily') ? 'active' : '' }}">Daily Attendance</a>
-                    <a href="{{ route('attendance.counts') }}"        class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.counts') ? 'active' : '' }}">Quick Counts (SUGAM)</a>
+                    <a href="{{ route('attendance.counts') }}"        class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.counts') ? 'active' : '' }}">Attendance by Group</a>
                     <a href="{{ route('attendance.counts-workers') }}" class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.counts-workers') ? 'active' : '' }}">Workers (by Contractor)</a>
                     <a href="{{ route('attendance.grid') }}"          class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.grid') ? 'active' : '' }}">Bulk Attendance Grid</a>
                     <a href="{{ route('attendance.summary') }}"       class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.summary') ? 'active' : '' }}">Summary Entry (P/W/L)</a>

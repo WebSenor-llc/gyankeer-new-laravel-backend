@@ -1,14 +1,14 @@
 @extends('layouts.app')
-@section('title', ($workersOnly ?? false) ? 'Workers Attendance — by Contractor' : 'Attendance — Quick Counts')
+@section('title', ($workersOnly ?? false) ? 'Workers Attendance — by Contractor' : 'Attendance by Group')
 
 @section('content')
-@php $workersOnly = $workersOnly ?? false; $contractors = $contractors ?? collect(); @endphp
+@php $workersOnly = $workersOnly ?? false; $contractors = $contractors ?? collect(); $salaryGroups = $salaryGroups ?? collect(); @endphp
 <div class="p-4">
     <div class="text-xs text-slate-500 mb-2">
         Attendance & Leave /
         <span class="text-slate-900 font-semibold">
             @if($workersOnly) Workers Attendance (by Contractor)
-            @else Quick Counts (SUGAM-style) @endif
+            @else Attendance by Group @endif
         </span>
     </div>
 
@@ -17,7 +17,7 @@
             @if($workersOnly)
                 👷 Workers Attendance — {{ \DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}
             @else
-                Quick Counts — {{ \DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}
+                Attendance by Group — {{ \DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}
             @endif
         </h1>
         <div class="flex gap-2">
@@ -65,6 +65,13 @@
                         <option value="{{ $d->dept_id }}" @selected(request('dept_id') == $d->dept_id)>{{ $d->dept_name }}</option>
                     @endforeach
                 </select></div>
+            <div><label class="block text-xs font-semibold text-slate-600 mb-1">Salary Group</label>
+                <select name="salary_group_id" class="border border-[var(--line)] rounded p-2 text-sm" style="min-width:200px">
+                    <option value="">— All Salary Groups —</option>
+                    @foreach($salaryGroups as $g)
+                        <option value="{{ $g->salary_group_id }}" @selected(request('salary_group_id') == $g->salary_group_id)>{{ $g->salary_group_name }}</option>
+                    @endforeach
+                </select></div>
         @endif
 
         <div class="flex-1"><label class="block text-xs font-semibold text-slate-600 mb-1">Search</label>
@@ -72,6 +79,8 @@
         <button type="submit" class="tb-btn primary">Apply</button>
         @if($workersOnly && (request('salary_group_id') || request('q')))
             <a href="{{ route('attendance.counts-workers', ['year'=>$year,'month'=>$month]) }}" class="tb-btn">Clear</a>
+        @elseif(!$workersOnly && (request('dept_id') || request('salary_group_id') || request('q')))
+            <a href="{{ route('attendance.counts', ['year'=>$year,'month'=>$month]) }}" class="tb-btn">Clear</a>
         @endif
     </form>
 
@@ -109,6 +118,7 @@
         @csrf
         <input type="hidden" name="year" value="{{ $year }}">
         <input type="hidden" name="month" value="{{ $month }}">
+        @if($workersOnly)<input type="hidden" name="_workers_only" value="1">@endif
 
         <div class="card overflow-x-auto">
             <table class="grid-tbl text-xs" id="countsTable" style="font-size:11px">
@@ -116,7 +126,7 @@
                     <tr style="background:#F1F5F9">
                         <th style="position:sticky;left:0;background:#F1F5F9;z-index:2;min-width:60px">Emp ID</th>
                         <th style="position:sticky;left:60px;background:#F1F5F9;z-index:2;min-width:200px">Name<br><span class="font-normal text-[9px] text-slate-500">/ Father</span></th>
-                        <th style="min-width:140px">{{ $workersOnly ? 'Contractor' : 'Dept' }}</th>
+                        <th style="min-width:140px">{{ $workersOnly ? 'Contractor' : 'Department' }}</th>
                         <th style="background:#D1FAE5;min-width:50px">P</th>
                         <th style="background:#E2E8F0;min-width:50px">W</th>
                         <th style="background:#FEF3C7;min-width:50px">CL</th>

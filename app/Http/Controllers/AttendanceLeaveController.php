@@ -625,6 +625,15 @@ class AttendanceLeaveController extends Controller
                 ->orderBy('salary_group_name')->get()
             : collect();
 
+        // Salary-group list for the Quick Counts page — all groups for the
+        // active company (so employees can be filtered by their pay group,
+        // e.g. Officers / Monthly Staff / Management). Workers use the dedicated
+        // Contractor dropdown instead, so skip it there.
+        $salaryGroups = !$workersOnly
+            ? \App\Models\SalaryGroup::when($cid, fn($q) => $q->where('company_id', $cid))
+                ->orderBy('salary_group_name')->get()
+            : collect();
+
         $empIds = $employees->pluck('emp_id')->all();
 
         // 1) Prefer the SAVED RAW COUNTS from attendance_summary (preserves exact
@@ -709,7 +718,7 @@ class AttendanceLeaveController extends Controller
 
         return view('attendance.counts', compact(
             'employees', 'existing', 'year', 'month', 'totalDays',
-            'sundays', 'saturdays', 'departments', 'workersOnly', 'contractors'
+            'sundays', 'saturdays', 'departments', 'workersOnly', 'contractors', 'salaryGroups'
         ));
     }
 
