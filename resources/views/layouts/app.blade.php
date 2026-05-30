@@ -73,7 +73,7 @@
         @endphp
         <nav class="py-2 text-[13px]">
             <a href="{{ route('dashboard') }}" class="flex items-center gap-2 px-4 py-2 hover:bg-slate-50 {{ request()->routeIs('dashboard') ? 'active' : '' }}">Home / Dashboard</a>
-            <details @if($isHrMaster) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">HR — Master Config</summary>
+            <details name="sidebarnav" @if($isHrMaster) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">HR — Master Config</summary>
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('companies.index') }}"   class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('companies.*') ? 'active' : '' }}">Manage Company</a>
                     <a href="{{ route('departments.index') }}" class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('departments.*') ? 'active' : '' }}">Manage Departments</a>
@@ -82,7 +82,7 @@
                     <a href="{{ route('exit-employees') }}"    class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('exit-employees') ? 'active' : '' }}">Exit Employees</a>
                 </div>
             </details>
-            <details open><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Payroll Config</summary>
+            <details name="sidebarnav"><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Payroll Config</summary>
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('manage-salary.index') }}"      class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('manage-salary.*') ? 'active' : '' }}">Manage Salary (per Employee)</a>
                     <a href="{{ route('salary-components.index') }}"  class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('salary-components.*') ? 'active' : '' }}">Salary Components</a>
@@ -99,7 +99,7 @@
                     <a href="{{ route('overtime-sheet') }}"           class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('overtime-sheet') ? 'active' : '' }}">Overtime Sheet</a>
                 </div>
             </details>
-            <details @if($isStatutory) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Statutory &amp; Compliance</summary>
+            <details name="sidebarnav" @if($isStatutory) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Statutory &amp; Compliance</summary>
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('statutory.pf') }}"        class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('statutory.pf','statutory.pf.*') ? 'active' : '' }}">PF Challan / ECR</a>
                     <a href="{{ route('statutory.esi') }}"       class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('statutory.esi','statutory.esi.*') ? 'active' : '' }}">ESI Challan</a>
@@ -113,7 +113,7 @@
                     <a href="{{ route('statutory.calendar') }}"  class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('statutory.calendar','statutory.calendar.*') ? 'active' : '' }}">Compliance Calendar</a>
                 </div>
             </details>
-            <details @if($isAttendance) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Attendance &amp; Leave</summary>
+            <details name="sidebarnav" @if($isAttendance) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Attendance &amp; Leave</summary>
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('attendance.daily') }}"         class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.daily') ? 'active' : '' }}">Daily Attendance</a>
                     <a href="{{ route('attendance.counts') }}"        class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.counts') ? 'active' : '' }}">Quick Counts (SUGAM)</a>
@@ -131,7 +131,7 @@
                     <a href="{{ route('attendance.upload') }}"        class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('attendance.upload') ? 'active' : '' }}">Attendance Upload</a>
                 </div>
             </details>
-            <details @if($isReports) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Reports</summary>
+            <details name="sidebarnav" @if($isReports) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Reports</summary>
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('reports.salary-sheet') }}"  class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('reports.salary-sheet') ? 'active' : '' }}">Salary Sheet</a>
                     <a href="{{ route('reports.salary-slip') }}"   class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('reports.salary-slip') ? 'active' : '' }}">Salary Slip</a>
@@ -159,5 +159,16 @@
 </div>
 
 @stack('scripts')
+<script>
+  // Sidebar: accordion — opening one <details> closes the others.
+  document.querySelectorAll('#sidebar details[name="sidebarnav"]').forEach(function (d) {
+    d.addEventListener('toggle', function () {
+      if (!d.open) return;
+      document.querySelectorAll('#sidebar details[name="sidebarnav"]').forEach(function (o) {
+        if (o !== d) o.open = false;
+      });
+    });
+  });
+</script>
 </body>
 </html>
