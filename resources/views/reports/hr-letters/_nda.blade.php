@@ -9,7 +9,7 @@
     {{ $c->registered_address_line1 ?? '' }}@if($c?->city), {{ $c->city }}@endif
     (hereinafter "Company"), and
     <strong>{{ $e->full_name ?: trim(($e->first_name ?? '').' '.($e->last_name ?? '')) }}</strong>
-    (Emp Code: {{ $e->emp_code ?: $e->emp_id }}) (hereinafter "Employee").</p>
+    (Emp Code: {{ $e->employee_code ?: $e->emp_id }}) (hereinafter "Employee").</p>
 
 <p><strong>1. Confidential Information.</strong> The Employee acknowledges that during the course of employment
     {{ in_array(strtolower($e->gender ?? ''), ['female','f']) ? 'she' : 'he' }} may have access to and become acquainted with
@@ -42,7 +42,7 @@
             <br><br>
             <p>_________________________<br>
             {{ $e->full_name }}<br>
-            Emp Code: {{ $e->emp_code ?: $e->emp_id }}</p>
+            Emp Code: {{ $e->employee_code ?: $e->emp_id }}</p>
         </td>
         <td style="width:50%;">
             <p><strong>For {{ $c->company_name ?? '' }}</strong></p>

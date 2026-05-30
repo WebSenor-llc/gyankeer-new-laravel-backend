@@ -42,7 +42,7 @@ class EmployeeController extends StubController
                 });
             }
             if ($req->filled('dept_id'))  $query->where('dept_id',           $req->dept_id);
-            if ($req->filled('emp_type')) $query->where('employee_type',     $req->emp_type);
+            if ($req->filled('emp_type')) $query->whereIn('employee_type',   $this->expandEmpType($req->emp_type));
             if ($req->filled('status'))   $query->where('employment_status', $req->status);
 
             $format = $req->input('export');
@@ -58,6 +58,23 @@ class EmployeeController extends StubController
         } catch (\Throwable $e) {
             return $this->stub('index — ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Map an emp_type filter value (ST/SB/WK) to every alias stored in the DB.
+     * employee_type is free-text string(50); different seeders/imports saved it
+     * as either the short code ('WK','SB','ST') or the full label ('Worker',
+     * 'Sub-Staff','Staff'), so a strict equality filter missed half the rows.
+     */
+    private function expandEmpType(?string $value): array
+    {
+        $key = strtolower(trim((string) $value));
+        return match ($key) {
+            'wk', 'worker', 'w', 'l', 'labour', 'labor'      => ['WK', 'wk', 'Worker', 'worker', 'W', 'L', 'Labour', 'labour'],
+            'sb', 'sub-staff', 'substaff', 'sub_staff', 'ss' => ['SB', 'sb', 'Sub-Staff', 'sub-staff', 'SubStaff', 'Sub Staff'],
+            'st', 'staff'                                    => ['ST', 'st', 'Staff', 'staff'],
+            default                                          => [$value],
+        };
     }
 
     /**

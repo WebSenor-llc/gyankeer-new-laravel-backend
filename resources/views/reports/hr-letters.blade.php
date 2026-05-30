@@ -29,7 +29,7 @@
             <tbody>
                 @forelse($employees as $e)
                     <tr>
-                        <td>{{ $e->emp_code ?: $e->emp_id }}</td>
+                        <td>{{ $e->employee_code ?: $e->emp_id }}</td>
                         <td>{{ $e->full_name }}</td>
                         <td>{{ $e->designation->designation_name ?? '—' }}</td>
                         <td>{{ $e->date_of_joining }}</td>

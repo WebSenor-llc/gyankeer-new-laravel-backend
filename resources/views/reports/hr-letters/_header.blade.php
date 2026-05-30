@@ -26,5 +26,5 @@
     <strong>{{ $e->full_name ?: trim(($e->first_name ?? '').' '.($e->last_name ?? '')) }}</strong><br>
     @if($e->permanent_address_line1){{ $e->permanent_address_line1 }}<br>@endif
     @if($e->permanent_address_line2){{ $e->permanent_address_line2 }}<br>@endif
-    Emp Code: {{ $e->emp_code ?: $e->emp_id }}
+    Emp Code: {{ $e->employee_code ?: $e->emp_id }}
 </div>

@@ -3,7 +3,7 @@
 <p><strong>TO WHOMSOEVER IT MAY CONCERN</strong></p>
 
 <p>This is to acknowledge that <strong>{{ $e->full_name ?: trim(($e->first_name ?? '').' '.($e->last_name ?? '')) }}</strong>
-    (Emp Code: {{ $e->emp_code ?: $e->emp_id }}),
+    (Emp Code: {{ $e->employee_code ?: $e->emp_id }}),
     who was working as <strong>{{ $e->designation->designation_name ?? '—' }}</strong> in the
     <strong>{{ $e->department->dept_name ?? '—' }}</strong> department of
     <strong>{{ $c->company_name ?? '' }}</strong>,

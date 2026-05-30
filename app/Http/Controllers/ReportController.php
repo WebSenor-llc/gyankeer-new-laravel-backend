@@ -63,7 +63,8 @@ class ReportController extends Controller
                 $w->where('full_name', 'like', "%{$s}%")
                   ->orWhere('first_name', 'like', "%{$s}%")
                   ->orWhere('last_name', 'like', "%{$s}%")
-                  ->orWhere('emp_code', 'like', "%{$s}%");
+                  ->orWhere('emp_id', 'like', "%{$s}%")
+                  ->orWhere('employee_code', 'like', "%{$s}%");
             });
         }
         $employees = $q->orderBy('emp_id')->paginate(50)->withQueryString();
@@ -106,12 +107,12 @@ class ReportController extends Controller
         ])->render();
 
         $html = view('reports.hr-letters._wrapper', [
-            'title' => $types[$type] . ' - ' . ($employee->full_name ?: $employee->emp_code),
+            'title' => $types[$type] . ' - ' . ($employee->full_name ?: $employee->employee_code),
             'body'  => $body,
         ])->render();
 
         $slug = preg_replace('/[^A-Za-z0-9_-]+/', '_',
-            ($employee->emp_code ?: $employee->emp_id) . '_' . ($employee->full_name ?: 'employee') . '_' . $type);
+            ($employee->employee_code ?: $employee->emp_id) . '_' . ($employee->full_name ?: 'employee') . '_' . $type);
         $filename = "{$slug}.doc";
 
         return response($html, 200, [
