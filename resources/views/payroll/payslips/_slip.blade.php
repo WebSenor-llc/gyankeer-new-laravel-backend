@@ -81,7 +81,7 @@
     $groupLabel = $emp->salary_group->salary_group_name ?? '';
 @endphp
 
-<div class="payslip-card" style="background:#fff;border:1px solid #000;font-family:Arial,sans-serif;color:#000">
+<div class="payslip-card" style="background:#fff;border:3px solid #000;font-family:Arial,sans-serif;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact">
 
     {{-- ===== Company name banner ===== --}}
     <div style="text-align:center;padding:8px 10px 6px;font-size:18px;font-weight:bold">
