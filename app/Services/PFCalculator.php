@@ -57,17 +57,29 @@ class PFCalculator
     {
         $wage = $this->pfWage($basicPlusDAOrComponents);
 
-        $employee = round($wage * config('hreasy.pf.employee_rate') / 100, 2);
-        $eps      = round($wage * config('hreasy.pf.eps_rate')      / 100, 2);
-        $employer = round($employee - $eps, 2);          // ← EE − EPS, NOT a fresh 3.67%
+        // EPFO ECR submissions are in WHOLE RUPEES. So we round to 0 decimals
+        // here, not 2. Otherwise EPS=1249.50 + ER=550.50 = 1800.00 looks like
+        // EPS=1250 + ER=551 = 1801 on the printed challan (half-up rounding of
+        // each display cell), which the EPFO portal rejects on upload.
+        //
+        // Rules in order:
+        //   employee = round(12%  x wage)            -- 1800 at the 15k cap
+        //   eps      = round(8.33% x wage)           -- 1250 at the 15k cap (1249.50 -> 1250)
+        //   employer = employee - eps                -- 550 at the 15k cap   (NOT a fresh 3.67%)
+        //
+        // This guarantees EE == EPS + ER in every row, matching what EPFO
+        // validates on ECR upload.
+        $employee = (int) round($wage * config('hreasy.pf.employee_rate') / 100);
+        $eps      = (int) round($wage * config('hreasy.pf.eps_rate')      / 100);
+        $employer = $employee - $eps;
 
         return [
             'wage'     => $wage,
             'employee' => $employee,
             'employer' => $employer,
             'eps'      => $eps,
-            'edli'     => round($wage * config('hreasy.pf.edli_rate')  / 100, 2),
-            'admin'    => round($wage * config('hreasy.pf.admin_rate') / 100, 2),
+            'edli'     => (int) round($wage * config('hreasy.pf.edli_rate')  / 100),
+            'admin'    => (int) round($wage * config('hreasy.pf.admin_rate') / 100),
         ];
     }
 

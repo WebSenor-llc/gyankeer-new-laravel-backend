@@ -152,6 +152,13 @@ class StatutoryController extends Controller
             ->when($groupEmpIds !== null, fn($q) => $q->whereIn('emp_id', $groupEmpIds))
             ->forceDelete();
 
+        // Recompute PF buckets fresh via the calculator so the ECR always
+        // reflects the CURRENT PF rules — not whatever was baked into the
+        // payslip rows when salary was originally generated. This means a
+        // PFCalculator change (e.g. EE−EPS rounding) takes effect immediately
+        // on the next "Generate ECR" click without having to re-run payroll.
+        $pfCalc = app(\App\Services\PFCalculator::class);
+
         $inserted = 0;
         foreach ($payslips as $p) {
             $emp = $p->emp;
@@ -160,6 +167,15 @@ class StatutoryController extends Controller
             // NCP days = LOP days (Non-Contributory Period for EPFO reporting).
             // Float preserved — half-day LOP (e.g. 1.5) stays as 1.5, not 2.
             $ncpDays = (float) $p->lop_days;
+
+            // Fresh PF computation on the payslip's wage components
+            $pf = $pfCalc->compute([
+                'basic'   => (float) $p->basic,
+                'da'      => (float) $p->da,
+                'conv'    => (float) ($p->conveyance ?? 0),
+                'medical' => (float) ($p->medical    ?? 0),
+                'spl'     => (float) ($p->spl_allow  ?? 0),
+            ]);
 
             \App\Models\PfEcrRecord::updateOrCreate(
                 [
@@ -171,20 +187,17 @@ class StatutoryController extends Controller
                 [
                     'uan'              => $emp->uan ?? '',
                     'member_name'      => $emp->full_name ?? '',
-                    // gross + the three capped wage columns: PF / EPS / EDLI all
-                    // computed on the same wage base (Basic + DA + Conv + Med + Spl,
-                    // capped at ₹15,000) per the company's PF rule.
                     'gross_wage'       => (float) $p->gross_earnings,
-                    'epf_wage_capped'  => $this->pfWageFromPayslip($p),
-                    'eps_wage_capped'  => $this->pfWageFromPayslip($p),
-                    'edli_wage_capped' => $this->pfWageFromPayslip($p),
-                    // EPFO Member-12% column = mandatory EPF EE share + VPF.
-                    // VPF flows into the same EPF member account, so it's reported here.
-                    'ee_share_12pct'   => (float) $p->epf_emp + (float) ($p->vpf ?? 0),
-                    'eps_8_33'         => (float) $p->eps,
-                    'er_share_3_67'    => (float) $p->employer_pf,
-                    'edli_0_5'         => (float) $p->edli,
-                    'pf_admin_0_5'     => (float) $p->pf_admin,
+                    'epf_wage_capped'  => $pf['wage'],
+                    'eps_wage_capped'  => $pf['wage'],
+                    'edli_wage_capped' => $pf['wage'],
+                    // EPFO Member-12% column = mandatory EPF EE share + VPF
+                    // (VPF flows into the same EPF member account).
+                    'ee_share_12pct'   => $pf['employee'] + (int) round((float) ($p->vpf ?? 0)),
+                    'eps_8_33'         => $pf['eps'],
+                    'er_share_3_67'    => $pf['employer'],   // = EE − EPS, EPFO whole-rupee rule
+                    'edli_0_5'         => $pf['edli'],
+                    'pf_admin_0_5'     => $pf['admin'],
                     'ncp_days'         => $ncpDays,
                     'lop_amount'       => 0,
                     'filed_status'     => 'Generated',
