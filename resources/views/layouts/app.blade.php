@@ -69,6 +69,11 @@
             $isHrMaster   = request()->routeIs('companies.*','departments.*','designations.*','employees.*','exit-employees');
             $isStatutory  = request()->routeIs('statutory.*');
             $isAttendance = request()->routeIs('attendance.*','leave.*');
+            $isPayroll    = request()->routeIs(
+                'manage-salary.*','salary-components.*','salary-groups.*','banks.*',
+                'payroll.generate','payroll.payslips.*','payroll.runs.*','payroll.transactions',
+                'reports.complete-salary','incentives.*','arrears.*','deductions.*','overtime-sheet'
+            );
             $isReports    = request()->routeIs('reports.salary-sheet','reports.salary-slip','reports.hr-letters','reports.bank-sheet','reports.increment','reports.headcount','reports.exit');
         @endphp
         <nav class="py-2 text-[13px]">
@@ -82,7 +87,7 @@
                     <a href="{{ route('exit-employees') }}"    class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('exit-employees') ? 'active' : '' }}">Exit Employees</a>
                 </div>
             </details>
-            <details name="sidebarnav"><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Payroll Config</summary>
+            <details name="sidebarnav" @if($isPayroll) open @endif><summary class="px-4 py-2 hover:bg-slate-50 font-semibold cursor-pointer">Payroll Config</summary>
                 <div class="pl-9 text-slate-600">
                     <a href="{{ route('manage-salary.index') }}"      class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('manage-salary.*') ? 'active' : '' }}">Manage Salary (per Employee)</a>
                     <a href="{{ route('salary-components.index') }}"  class="block py-1.5 hover:text-[var(--brand)] {{ request()->routeIs('salary-components.*') ? 'active' : '' }}">Salary Components</a>
