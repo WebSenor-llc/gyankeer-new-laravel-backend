@@ -988,24 +988,30 @@ class AttendanceLeaveController extends Controller
         $to   = \Carbon\Carbon::parse($req->to_date);
         $days = $from->diffInDays($to) + 1;
 
-        LeaveApplication::create([
-            'company_id'      => $emp->company_id,
-            'emp_id'          => $emp->emp_id,
-            'employee_name'   => $emp->full_name,
-            'leave_type_id'   => $type?->leave_type_id,
-            'leave_code'      => $type?->leave_code,
-            'from_date'       => $from->toDateString(),
-            'to_date'         => $to->toDateString(),
-            'days'            => $days,
-            'half_day_flag'   => $req->boolean('half_day_flag'),
-            'reason'          => $req->reason,
-            'applied_at'      => now(),
-            'approval_status' => 'Pending',
-            'active_flag'     => true,
-        ]);
+        // Create the leave AND reflect it into attendance (daily grid + Attendance
+        // by Group counts) atomically — a sync failure rolls back the application.
+        \Illuminate\Support\Facades\DB::transaction(function () use ($emp, $type, $from, $to, $days, $req) {
+            $leave = LeaveApplication::create([
+                'company_id'      => $emp->company_id,
+                'emp_id'          => $emp->emp_id,
+                'employee_name'   => $emp->full_name,
+                'leave_type_id'   => $type?->leave_type_id,
+                'leave_code'      => $type?->leave_code,
+                'from_date'       => $from->toDateString(),
+                'to_date'         => $to->toDateString(),
+                'days'            => $days,
+                'half_day_flag'   => $req->boolean('half_day_flag'),
+                'reason'          => $req->reason,
+                'applied_at'      => now(),
+                'approval_status' => 'Pending',
+                'active_flag'     => true,
+            ]);
+
+            app(\App\Services\LeaveAttendanceSync::class)->apply($leave);
+        });
 
         return redirect()->route('leave.record')
-            ->with('status', "Leave application submitted for {$emp->full_name} ({$days} day" . ($days > 1 ? 's' : '') . "). Awaiting approval.");
+            ->with('status', "Leave application submitted for {$emp->full_name} ({$days} day" . ($days > 1 ? 's' : '') . "). Attendance updated. Awaiting approval.");
     }
 
     public function leaveOnline()

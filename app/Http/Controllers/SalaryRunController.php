@@ -278,7 +278,7 @@ class SalaryRunController extends Controller
             }
             $wDays  = $att ? (float)$att->p_count : ($p->present_days ?? 0);
             $leaves = $att ? (float)($att->cl_count + $att->sl_count + $att->pl_count) : 0;
-            $ph     = 0;
+            $ph     = $att ? (float)($att->ph_count ?? 0) : 0;
             $abs    = $att ? (float)$att->a_count : 0;
             $wo     = $att ? (float)$att->w_count : 0;
             $pDays  = $p->payable_days ?? \Carbon\Carbon::createFromDate($year, $month, 1)->daysInMonth;
