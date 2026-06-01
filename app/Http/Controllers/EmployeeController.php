@@ -333,7 +333,7 @@ class EmployeeController extends StubController
             'date_of_joining','probation_period_months','on_probation','cost_center','business_unit',
             'work_place','third_party_code',
             'current_basic','current_hra','current_da','current_conv','current_med',
-            'current_spl','current_gross','current_ctc','education_allow',
+            'current_spl','current_gross','current_ctc','education_allow','vpf_amount',
             'bank_account_no','bank_ifsc','account_holder_name',
             'pan_no','aadhar_id_no','aadhar_enrollment_no','voter_id_no','driving_license_no',
             'uan','epf_member_id','esi_ip_no','tax_regime',
@@ -414,7 +414,7 @@ class EmployeeController extends StubController
             'dept_id','designation_id','salary_group_id','employment_status','employee_type',
             'date_of_joining','date_of_relieving','cost_center','business_unit',
             'current_basic','current_hra','current_da','current_conv','current_med',
-            'current_spl','current_gross','current_ctc','education_allow',
+            'current_spl','current_gross','current_ctc','education_allow','vpf_amount',
             'bank_id','bank_account_no','bank_ifsc',
             'pan_no','aadhar_id_no','uan','epf_member_id','esi_ip_no','tax_regime',
         ];

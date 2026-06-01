@@ -8,7 +8,10 @@
         <a href="{{ route('leave.record') }}" class="hover:underline">Leave Record</a> /
         <span class="text-slate-900 font-semibold">Apply</span>
     </div>
-    <h1 class="text-xl font-bold mb-3">Apply for Leave</h1>
+    <div class="flex items-center justify-between mb-3">
+        <h1 class="text-xl font-bold">Apply for Leave</h1>
+        <a href="{{ route('leave.record') }}" class="tb-btn">View Leave Record →</a>
+    </div>
 
     @if($errors->any())
         <div class="mb-3 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-800">

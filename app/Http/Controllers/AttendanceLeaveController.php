@@ -1003,7 +1003,8 @@ class AttendanceLeaveController extends Controller
                 'half_day_flag'   => $req->boolean('half_day_flag'),
                 'reason'          => $req->reason,
                 'applied_at'      => now(),
-                'approval_status' => 'Pending',
+                'approval_status' => 'Approved',
+                'approval_date'   => now(),
                 'active_flag'     => true,
             ]);
 
@@ -1011,12 +1012,12 @@ class AttendanceLeaveController extends Controller
         });
 
         return redirect()->route('leave.record')
-            ->with('status', "Leave application submitted for {$emp->full_name} ({$days} day" . ($days > 1 ? 's' : '') . "). Attendance updated. Awaiting approval.");
+            ->with('status', "Leave application submitted for {$emp->full_name} ({$days} day" . ($days > 1 ? 's' : '') . "). Attendance updated. Approved.");
     }
 
     public function leaveOnline()
     {
-        $pending = LeaveApplication::where('status', 'Pending')
+        $pending = LeaveApplication::where('approval_status', 'Pending')
             ->orderByDesc('applied_at')
             ->paginate(50);
         return view('leave.online', compact('pending'));
@@ -1025,15 +1026,22 @@ class AttendanceLeaveController extends Controller
     public function leaveApprove($id)
     {
         $app = LeaveApplication::findOrFail($id);
-        $app->update(['status' => 'Approved', 'approval_date' => now()]);
+        $app->update(['approval_status' => 'Approved', 'approval_date' => now()]);
         return back()->with('status', 'Leave approved.');
     }
 
     public function leaveReject($id)
     {
         $app = LeaveApplication::findOrFail($id);
-        $app->update(['status' => 'Rejected']);
+        $app->update(['approval_status' => 'Rejected']);
         return back()->with('status', 'Leave rejected.');
+    }
+
+    public function leaveDestroy($id)
+    {
+        $app = LeaveApplication::findOrFail($id);
+        $app->delete();
+        return back()->with('status', 'Leave application deleted.');
     }
 
     public function balance()
@@ -1048,6 +1056,10 @@ class AttendanceLeaveController extends Controller
         if ($cid) $q->where('company_id', $cid);
         if ($req->filled('status')) $q->where('approval_status', $req->status);
         if ($req->filled('emp_id'))  $q->where('emp_id', $req->emp_id);
+        if ($req->filled('month')) {
+            $m = \Carbon\Carbon::parse($req->month . '-01');
+            $q->whereYear('from_date', $m->year)->whereMonth('from_date', $m->month);
+        }
         $records = $q->orderByDesc('applied_at')->paginate(50)->appends($req->query());
 
         $totals = [

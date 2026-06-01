@@ -166,6 +166,7 @@
                 {!! $f('current_spl',    'Special',   $emp->current_spl,    'number', 'step="0.01"')!!}
                 {!! $f('current_gross',  'Gross',     $emp->current_gross,  'number', 'step="0.01"')!!}
                 {!! $f('current_ctc',    'CTC',       $emp->current_ctc,    'number', 'step="0.01"')!!}
+                {!! $f('vpf_amount',     'VPF (fixed/month)', $emp->vpf_amount, 'number', 'step="0.01"')!!}
             </div>
         </div>
 

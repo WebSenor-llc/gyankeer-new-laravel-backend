@@ -360,7 +360,10 @@ class PayrollEngine
         // via /payroll/salary-deductions/create. The engine applies them here.
         $advanceRecovery = 0.0;
         $loanEmi         = 0.0;
-        $vpfAmount       = 0.0;  // Voluntary PF (extra employee EPF contribution)
+        // VPF is a standing election on the employee master (employees.vpf_amount):
+        // a fixed amount that auto-applies every month. A per-month manual entry
+        // (manual_deductions.vpf_deduction), if present and > 0, overrides it.
+        $vpfAmount       = (float) ($e->vpf_amount ?? 0);  // Voluntary PF (extra employee EPF contribution)
         $postDeduction   = 0.0;  // sum of AG donation + maintenance + mobile + canteen + misc + rent
         if (\Illuminate\Support\Facades\Schema::hasTable('manual_deductions')) {
             $manual = \App\Models\ManualDeduction::where('emp_id', $e->emp_id)
@@ -371,8 +374,9 @@ class PayrollEngine
                 $advanceRecovery = (float) $manual->advance_deduction;
                 $loanEmi         = (float) $manual->loan_deduction;
                 $postDeduction   = $manual->postDeductionTotal();
-                if (\Illuminate\Support\Facades\Schema::hasColumn('manual_deductions','vpf_deduction')) {
-                    $vpfAmount   = (float) ($manual->vpf_deduction ?? 0);
+                if (\Illuminate\Support\Facades\Schema::hasColumn('manual_deductions','vpf_deduction')
+                    && (float) ($manual->vpf_deduction ?? 0) > 0) {
+                    $vpfAmount   = (float) $manual->vpf_deduction;
                 }
                 // TDS comes ONLY from manual entry now (auto-compute is disabled).
                 // Use whatever HR entered, including 0.

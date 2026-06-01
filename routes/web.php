@@ -209,6 +209,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/reject', 'leaveReject') ->name('reject');
         Route::get ('/balance',   'balance')      ->name('balance');
         Route::get ('/record',    'record')       ->name('record');
+        Route::delete('/{id}',    'leaveDestroy') ->name('destroy');
     });
 
     Route::resource('shifts',   ShiftController::class);
