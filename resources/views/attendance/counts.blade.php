@@ -185,7 +185,7 @@
                             <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][cl]" value="{{ $c['cl'] ?: '' }}" class="cnt cnt-cl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
                             <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][sl]" value="{{ $c['sl'] ?: '' }}" class="cnt cnt-sl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
                             <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][pl]" value="{{ $c['pl'] ?: '' }}" class="cnt cnt-pl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
-                            <td style="background:#FEE2E2;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][a]"  value="{{ $c['a']  ?: '' }}" class="cnt cnt-a  w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
+                            <td style="background:#FEE2E2;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][a]"  value="{{ $c['a']  ?: '' }}" readonly title="Auto-calculated: remaining days after P/W/CL/SL/PL/HD/PH" class="cnt cnt-a  w-full border border-[var(--line)] rounded p-1 text-xs text-center font-bold bg-rose-50 text-rose-700 cursor-not-allowed" tabindex="-1"></td>
                             <td style="background:#FFEDD5;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][hd]" value="{{ $c['hd'] ?: '' }}" class="cnt cnt-hd w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
                             <td style="background:#E0E7FF;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][ph]" value="{{ ($c['ph'] ?? 0) ?: '' }}" class="cnt cnt-ph w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
                             <td style="background:#DBEAFE;padding:1px"><input type="number" min="0" max="744" step="0.5" name="row[{{ $e->emp_id }}][ot]" value="{{ $c['ot'] ?: '' }}" class="cnt-ot w-full border border-[var(--line)] rounded p-1 text-xs text-center"></td>
@@ -270,9 +270,26 @@ function openMoveModal(empId, fullName, currentGroupId, currentGroupName) {
 <script>
 const TOTAL_DAYS = {{ $totalDays }};
 
+// Absent = TOTAL_DAYS − (P+W+CL+SL+PL+HD+PH). Auto-filled, never typed by hand.
+// Empty row stays empty (so it isn't counted as a full month of absences).
+function autoFillAbsent(tr) {
+    const aInput = tr.querySelector('.cnt-a');
+    if (!aInput) return;
+    let others = 0;
+    tr.querySelectorAll('input.cnt').forEach(i => {
+        if (i !== aInput) others += (parseFloat(i.value) || 0);
+    });
+    others = Math.round(others * 100) / 100;
+    if (others === 0) { aInput.value = ''; return; }
+    let absent = Math.round((TOTAL_DAYS - others) * 100) / 100;
+    if (absent < 0) absent = 0;
+    aInput.value = absent;
+}
+
 function recalcRow(input) {
     const tr = input.closest('tr');
     if (!tr) return;
+    autoFillAbsent(tr);
     let sum = 0;
     tr.querySelectorAll('input.cnt').forEach(i => { sum += (parseFloat(i.value) || 0); });
     sum = Math.round(sum * 100) / 100;  // avoid 30.000000001 from float math
