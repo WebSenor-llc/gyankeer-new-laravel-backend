@@ -30,10 +30,17 @@
         tr.totals-row td.label { background: #FCD34D; text-align: center; font-size: 11px; }
         .footer { display: flex; justify-content: space-between; margin-top: 14px; font-size: 9px; padding: 0 4px; }
         .page-num { text-align: right; font-size: 8px; margin-top: 4px; }
+        /* Never let a single employee row split across a page boundary */
+        table.sheet-table tr { page-break-inside: avoid; break-inside: avoid; }
+        table.sheet-table td, table.sheet-table th { page-break-inside: avoid; break-inside: avoid; }
+        /* Repeat the column header on every printed page */
+        table.sheet-table thead { display: table-header-group; }
+        tr.totals-row { page-break-inside: avoid; break-inside: avoid; }
         @media print {
             body { background: #fff; padding: 0; }
             .actions { display: none; }
             .sheet { border: none; max-width: 100%; padding: 0; }
+            table.sheet-table tr { page-break-inside: avoid !important; break-inside: avoid !important; }
         }
     </style>
 </head>

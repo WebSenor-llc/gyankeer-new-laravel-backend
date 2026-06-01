@@ -352,7 +352,7 @@ function exportSelected(format, gid) {
     });
     if (checked.length < total) checked.forEach(id => params.append('selected_emp_ids[]', id));
     const url = "{{ route('payroll.generate') }}?" + params.toString();
-    if (format === 'pdf') window.open(url, '_blank'); else window.location = url;
+    if (format === 'pdf' || format === 'muster') window.open(url, '_blank'); else window.location = url;
 }
 
 // ===== Per-group delete modal =====

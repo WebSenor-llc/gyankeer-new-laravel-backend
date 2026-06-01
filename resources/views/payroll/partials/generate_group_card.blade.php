@@ -16,6 +16,8 @@
                         class="tb-btn primary" style="background:#0EA5E9;border-color:#0284C7">⬇ Excel</button>
                 <button type="button" onclick="exportSelected('pdf', {{ $gid }})"
                         class="tb-btn primary" style="background:#DC2626;border-color:#B91C1C">⬇ PDF</button>
+                <button type="button" onclick="exportSelected('muster', {{ $gid }})"
+                        class="tb-btn primary" style="background:#7C3AED;border-color:#6D28D9">⬇ Muster Roll</button>
                 @if($groupHasExisting)
                     <button type="button" onclick="openDeleteModal({{ $gid }})"
                             class="tb-btn primary" style="background:#7C2D12;border-color:#7C2D12;color:#fff">🗑️ Delete</button>

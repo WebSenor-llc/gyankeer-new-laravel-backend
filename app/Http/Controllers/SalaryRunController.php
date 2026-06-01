@@ -64,6 +64,9 @@ class SalaryRunController extends Controller
             if ($req->input('export') === 'pdf') {
                 return $this->exportGroupPdf($exportEmps, $companyId, $singleGid, $year, $month);
             }
+            if ($req->input('export') === 'muster') {
+                return $this->exportMusterRoll($exportEmps, $companyId, $singleGid, $year, $month);
+            }
         }
 
         // Employee preview list (only when "Get List" was clicked)
@@ -345,6 +348,107 @@ class SalaryRunController extends Controller
         }
 
         return view('payroll.generate-pdf', compact('rows', 'totals', 'company', 'group', 'year', 'month', 'monthLabel'));
+    }
+
+    /**
+     * Attendance Muster Roll — month-wise daily grid (days 1..N) per employee
+     * with a short status code per day, plus summary columns
+     * (Presents / Week Off / Paid Holidays / Leaves / Absent+ESI / Payable Days).
+     * Renders the same print-to-PDF Blade pattern used by exportGroupPdf().
+     */
+    protected function exportMusterRoll($employees, int $companyId, int $salaryGroupId, int $year, int $month)
+    {
+        $company    = \App\Models\Company::find($companyId);
+        $group      = \App\Models\SalaryGroup::find($salaryGroupId);
+        $monthLabel = \DateTime::createFromFormat('!m', $month)->format('M') . '-' . $year;
+        $daysInMonth= \Carbon\Carbon::createFromDate($year, $month, 1)->daysInMonth;
+
+        // Day header labels with weekday short + Sunday flag (for highlight)
+        $dayLabels = [];
+        for ($d = 1; $d <= $daysInMonth; $d++) {
+            $c = \Carbon\Carbon::createFromDate($year, $month, $d);
+            $dayLabels[$d] = ['short' => $c->format('D'), 'is_sun' => $c->dayOfWeek === 0];
+        }
+
+        $empIds = $employees->pluck('emp_id');
+
+        // Per-day attendance: emp_id => [day => short code]
+        $daily = \App\Models\AttendanceDaily::whereIn('emp_id', $empIds)
+            ->whereYear('attn_date', $year)->whereMonth('attn_date', $month)
+            ->get();
+        $cells = [];
+        foreach ($daily as $row) {
+            $day = (int) \Carbon\Carbon::parse($row->attn_date)->format('j');
+            $cells[$row->emp_id][$day] = $this->musterCode($row->status, $row->status_reason);
+        }
+
+        // Authoritative summary counts per employee
+        $summaries = \App\Models\AttendanceSummary::whereIn('emp_id', $empIds)
+            ->where('period_year', $year)->where('period_month', $month)
+            ->get()->keyBy('emp_id');
+
+        $rows = [];
+        $totals = ['present'=>0,'weekoff'=>0,'ph'=>0,'leaves'=>0,'absent'=>0,'payable'=>0];
+        $sr = 0;
+        foreach ($employees as $e) {
+            $sr++;
+            $s = $summaries->get($e->emp_id);
+            $present = $s ? (float) $s->p_count : 0;
+            $weekoff = $s ? (float) $s->w_count : 0;
+            $ph      = $s ? (float) ($s->ph_count ?? 0) : 0;
+            $leaves  = $s ? (float) ($s->cl_count + $s->sl_count + $s->pl_count) : 0;
+            $absent  = $s ? (float) $s->a_count : 0;
+            $payable = $daysInMonth - $absent;   // Days in month − Absent
+
+            $rows[] = [
+                'sr'          => $sr,
+                'emp_id'      => $e->emp_id,
+                'name'        => $e->full_name,
+                'designation' => $e->designation->designation_name ?? '',
+                'days'        => $cells[$e->emp_id] ?? [],
+                'present'     => $present,
+                'weekoff'     => $weekoff,
+                'ph'          => $ph,
+                'leaves'      => $leaves,
+                'absent'      => $absent,
+                'payable'     => $payable,
+            ];
+
+            $totals['present'] += $present;
+            $totals['weekoff'] += $weekoff;
+            $totals['ph']      += $ph;
+            $totals['leaves']  += $leaves;
+            $totals['absent']  += $absent;
+            $totals['payable'] += $payable;
+        }
+
+        return view('payroll.muster-pdf', compact(
+            'rows', 'totals', 'company', 'group', 'year', 'month',
+            'monthLabel', 'dayLabels', 'daysInMonth'
+        ));
+    }
+
+    /** Map an attendance_daily status label (+leave reason) to a short muster code. */
+    protected function musterCode(?string $status, ?string $reason): string
+    {
+        $status = trim((string) $status);
+        switch (strtolower($status)) {
+            case 'present':      return 'P';
+            case 'absent':       return 'A';
+            case 'weekly off':   return 'WO';
+            case 'holiday':      return 'PH';
+            case 'on duty':      return 'OD';
+            case 'half day':     return 'HD';
+            case 'on leave':
+                $r = strtoupper(trim((string) $reason));
+                // status_reason may hold CL/SL/PL (sometimes "CL Half", "P/CL")
+                if (str_contains($r, 'CL')) return 'CL';
+                if (str_contains($r, 'SL')) return 'SL';
+                if (str_contains($r, 'PL')) return 'PL';
+                return 'L';
+            default:
+                return $status !== '' ? strtoupper(substr($status, 0, 2)) : '';
+        }
     }
 
     protected function streamCsv(string $filename, array $columns, array $dataRows, array $totalsRow)
