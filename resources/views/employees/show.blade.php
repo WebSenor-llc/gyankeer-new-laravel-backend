@@ -104,6 +104,7 @@
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Employment Status</div><div>{{ $emp->employment_status ?? '—' }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Employee Type</div><div>{{ $emp->employee_type ?? '—' }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Date of Joining</div><div>{{ $emp->date_of_joining ? \Carbon\Carbon::parse($emp->date_of_joining)->format('d-M-Y') : '—' }}</div></div>
+                        <div><div class="text-[11px] text-slate-500 uppercase mb-1">Last Working Day</div><div>{{ $emp->date_of_relieving ? \Carbon\Carbon::parse($emp->date_of_relieving)->format('d-M-Y') : '—' }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Probation Period (months)</div><div>{{ $emp->probation_period_months ?? '—' }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Confirmed</div><div>{{ $emp->confirmed_flag ? 'Yes' : 'No' }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Cost Center</div><div>{{ $emp->cost_center ?? '—' }}</div></div>

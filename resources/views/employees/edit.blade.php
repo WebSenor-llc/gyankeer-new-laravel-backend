@@ -130,9 +130,16 @@
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1.5">Employment Status</label>
-                    <select name="employment_status" class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm">
+                    <select name="employment_status" id="employment_status" class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm">
                         @foreach(['Active','Notice','Exited','Resigned','Suspended'] as $s)<option value="{{ $s }}" @selected($emp->employment_status === $s)>{{ $s }}</option>@endforeach
                     </select>
+                </div>
+                <div id="last_working_day_wrap" style="display:none;">
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Last Working Day</label>
+                    <input type="date" name="date_of_relieving" id="date_of_relieving"
+                           value="{{ $emp->date_of_relieving ? \Carbon\Carbon::parse($emp->date_of_relieving)->format('Y-m-d') : '' }}"
+                           class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm">
+                    <p class="text-[11px] text-slate-500 mt-1">Payroll pro-rates up to this date for the exit month.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1.5">Employee Type</label>
@@ -205,6 +212,18 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    // Toggle "Last Working Day" based on employment status
+    const status = document.getElementById('employment_status');
+    const lwdWrap = document.getElementById('last_working_day_wrap');
+    if (status && lwdWrap) {
+        const exitStatuses = ['Notice', 'Exited', 'Resigned'];
+        const toggleLwd = () => {
+            lwdWrap.style.display = exitStatuses.includes(status.value) ? '' : 'none';
+        };
+        status.addEventListener('change', toggleLwd);
+        toggleLwd();
+    }
+
     const gross = document.querySelector('input[name="current_gross"]');
     if (!gross) return;
     const form = gross.form || gross.closest('form');

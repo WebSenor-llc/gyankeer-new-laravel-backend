@@ -412,7 +412,7 @@ class EmployeeController extends StubController
             'dob','gender','marital_status','blood_group','nationality',
             'personal_mobile','personal_email','company_email','company_mobile',
             'dept_id','designation_id','salary_group_id','employment_status','employee_type',
-            'date_of_joining','cost_center','business_unit',
+            'date_of_joining','date_of_relieving','cost_center','business_unit',
             'current_basic','current_hra','current_da','current_conv','current_med',
             'current_spl','current_gross','current_ctc','education_allow',
             'bank_id','bank_account_no','bank_ifsc',
