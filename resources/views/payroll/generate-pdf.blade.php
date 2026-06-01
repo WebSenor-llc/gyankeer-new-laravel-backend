@@ -67,7 +67,7 @@
                 <th style="width:60px">Uniform All. /<br>Academic All.<br>Med. Reimb.<br>SP/HR All.<br>Oth. Arr.</th>
                 <th style="width:50px">Other Fixed<br>All.</th>
                 <th rowspan="2" style="width:54px">Total</th>
-                <th style="width:46px">ESI<br>TDS<br>P.F.<br>P.F.Arr</th>
+                <th style="width:46px">ESI<br>TDS<br>P.F.<br>P.F.Arr<br>VPF</th>
                 <th style="width:46px">Loan<br>Adv.<br>Maint.<br>Flat</th>
                 <th style="width:46px">Cant.D.<br>Mobile<br>Rent D.<br>W.F.</th>
                 <th style="width:46px">P.T.<br>A.G. Ded.<br>Misc./NPS<br>LWF</th>
@@ -124,6 +124,7 @@
                         <span>{{ number_format($r['tds'], 0) }}</span>
                         <span>{{ number_format($r['pf'], 0) }}</span>
                         <span>{{ number_format($r['pf_arr'], 0) }}</span>
+                        <span>{{ number_format($r['vpf'], 0) }}</span>
                     </td>
                     <td class="num-stack">
                         <span>{{ number_format($r['loan'], 0) }}</span>
@@ -182,6 +183,7 @@
                     <span>{{ number_format($totals['tds'], 0) }}</span>
                     <span>{{ number_format($totals['pf'], 0) }}</span>
                     <span>{{ number_format($totals['pf_arr'], 0) }}</span>
+                    <span>{{ number_format($totals['vpf'], 0) }}</span>
                 </td>
                 <td class="num-stack">
                     <span>{{ number_format($totals['loan'], 0) }}</span>
