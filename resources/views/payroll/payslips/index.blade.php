@@ -25,6 +25,11 @@
         <div><label class="block text-xs font-semibold text-slate-600 mb-1">Emp ID</label>
             <input type="number" name="emp_id" value="{{ request('emp_id') }}" placeholder="e.g. 13139" class="border border-[var(--line)] rounded p-2 text-sm" style="width:110px"/></div>
         <button type="submit" class="tb-btn primary">Filter</button>
+        <a href="{{ route('payroll.payslips.bulk', array_filter(['year'=>$year,'month'=>$month,'group_id'=>request('group_id'),'emp_id'=>request('emp_id')])) }}"
+           target="_blank" class="tb-btn"
+           title="Open all payslips for the current filter as a printable PDF (one slip per page)">
+            🖨 Bulk PDF{{ request('group_id') ? ' (Group)' : ' (All)' }}
+        </a>
     </form>
 
     <div class="grid grid-cols-3 gap-3 mb-4">

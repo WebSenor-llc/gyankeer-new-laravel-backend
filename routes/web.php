@@ -117,6 +117,7 @@ Route::middleware(['auth'])->group(function () {
 
         // Payslips — list, view, and printable
         Route::get   ('/payslips',                                     [PayslipController::class,'index'])    ->name('payslips.index');
+        Route::get   ('/payslips/bulk-print',                          [PayslipController::class,'bulkPrint'])->name('payslips.bulk');
         Route::get   ('/payslips/{empId}/{year}/{month}',              [PayslipController::class,'show'])     ->name('payslips.show');
         Route::get   ('/payslips/{empId}/{year}/{month}/print',        [PayslipController::class,'printable'])->name('payslips.print');
     });

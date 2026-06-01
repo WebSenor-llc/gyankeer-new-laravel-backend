@@ -45,6 +45,37 @@ class PayslipController extends Controller
         return view('payroll.payslips.index', compact('payslips','year','month','totals','salaryGroups'));
     }
 
+    /**
+     * Bulk printable payslips for a whole salary group (one slip per page).
+     * GET /payroll/payslips/bulk-print?year=&month=&group_id=
+     */
+    public function bulkPrint(Request $req)
+    {
+        $cid   = (int) session('active_company_id', 0);
+        $year  = (int) $req->input('year',  now()->year);
+        $month = (int) $req->input('month', now()->month);
+        $gid   = $req->input('group_id');
+
+        $runIds = SalaryRun::when($cid, fn($q) => $q->where('company_id', $cid))
+            ->where('period_year', $year)->where('period_month', $month)
+            ->pluck('run_id');
+
+        $q = Payslip::with('emp.department','emp.designation','emp.salary_group','emp.bank','run')
+            ->whereIn('run_id', $runIds);
+
+        if ($gid) $q->whereHas('emp', fn($w) => $w->where('salary_group_id', $gid));
+        if ($req->filled('emp_id')) $q->where('emp_id', $req->emp_id);
+
+        $payslips = $q->orderBy('emp_id')->get();
+
+        abort_if($payslips->isEmpty(), 404, 'No payslips found for the selected period/group.');
+
+        $company = Company::find($cid) ?? Company::find($payslips->first()->emp->company_id);
+        $group   = $gid ? \App\Models\SalaryGroup::find($gid) : null;
+
+        return view('payroll.payslips.bulk-print', compact('payslips','company','group','year','month'));
+    }
+
     public function show($empId, $year, $month)
     {
         $payslip = Payslip::with('emp.department','emp.designation','emp.salary_group','emp.bank','run')
