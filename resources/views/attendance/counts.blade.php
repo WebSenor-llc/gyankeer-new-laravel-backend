@@ -271,16 +271,20 @@ function openMoveModal(empId, fullName, currentGroupId, currentGroupName) {
 const TOTAL_DAYS = {{ $totalDays }};
 
 // Absent = TOTAL_DAYS − (P+W+CL+SL+PL+HD+PH). Auto-filled, never typed by hand.
-// Empty row stays empty (so it isn't counted as a full month of absences).
+// A completely BLANK row (no value in any field) stays empty so it isn't counted
+// as a full month of absence. But an explicit 0 typed into P/W (etc.) IS a real
+// entry → remaining days become Absent. So P=0 & W=0 → whole month Absent.
 function autoFillAbsent(tr) {
     const aInput = tr.querySelector('.cnt-a');
     if (!aInput) return;
-    let others = 0;
+    let others = 0, anyEntered = false;
     tr.querySelectorAll('input.cnt').forEach(i => {
-        if (i !== aInput) others += (parseFloat(i.value) || 0);
+        if (i === aInput) return;
+        if (i.value.trim() !== '') anyEntered = true;
+        others += (parseFloat(i.value) || 0);
     });
     others = Math.round(others * 100) / 100;
-    if (others === 0) { aInput.value = ''; return; }
+    if (!anyEntered) { aInput.value = ''; return; }
     let absent = Math.round((TOTAL_DAYS - others) * 100) / 100;
     if (absent < 0) absent = 0;
     aInput.value = absent;
