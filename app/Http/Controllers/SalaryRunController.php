@@ -343,13 +343,21 @@ class SalaryRunController extends Controller
                 'bank_acno'    => $e->bank_account_no ?? '',
             ];
 
-            // Money columns print as whole rupees per row (number_format(...,0)),
-            // so accumulate the ROUNDED value to keep the footer total equal to the
-            // sum of the printed rows. Attendance columns print at 2 decimals -> keep raw.
+            // Money columns print as whole rupees (number_format(...,0)). Round each
+            // row, then DERIVE Net = Gross - Total Deductions from the rounded figures
+            // so the sheet both foots (column total = sum of printed rows) AND
+            // cross-foots (Net = Gross - Deductions on every row and at the total).
+            // Rounding net_pay independently would drift vs Gross-Deductions by a few ₹.
             $attnKeys = ['wdays','leaves','ph','wo','abs','pdays'];
+            foreach ($row as $k => $val) {
+                if (array_key_exists($k, $totals) && !in_array($k, $attnKeys, true)) {
+                    $row[$k] = round((float) $val);
+                }
+            }
+            $row['net'] = $row['gross'] - $row['total_ded'];
+
             foreach (array_keys($totals) as $k) {
-                $val = (float) $row[$k];
-                $totals[$k] += in_array($k, $attnKeys, true) ? $val : round($val);
+                $totals[$k] += (float) $row[$k];
             }
             $rows[] = $row;
         }
