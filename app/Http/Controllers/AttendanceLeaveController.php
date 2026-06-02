@@ -640,6 +640,9 @@ class AttendanceLeaveController extends Controller
         //    decimals like 25.5 P + 0.5 CL). 2) Fall back to deriving from
         //    attendance_daily for periods not yet entered via /attendance/counts.
         $existing = collect();
+        // emp_ids that have an explicit saved summary row — their stored counts
+        // (including 0 for P/W) must render verbatim, not be blanked out.
+        $savedIds = [];
         if (\Illuminate\Support\Facades\Schema::hasTable('attendance_summary')) {
             $rows = \App\Models\AttendanceSummary::whereIn('emp_id', $empIds)
                 ->where('period_year', $year)
@@ -659,6 +662,7 @@ class AttendanceLeaveController extends Controller
                     'ph' => (float) ($s->ph_count ?? 0),
                     'ot' => (float) $s->ot_hours,
                 ];
+                $savedIds[] = $s->emp_id;
             }
         }
 
@@ -718,7 +722,7 @@ class AttendanceLeaveController extends Controller
 
         return view('attendance.counts', compact(
             'employees', 'existing', 'year', 'month', 'totalDays',
-            'sundays', 'saturdays', 'departments', 'workersOnly', 'contractors', 'salaryGroups'
+            'sundays', 'saturdays', 'departments', 'workersOnly', 'contractors', 'salaryGroups', 'savedIds'
         ));
     }
 

@@ -142,7 +142,13 @@
                 <tbody>
                     @php $lastGroupId = null; @endphp
                     @forelse($employees as $e)
-                        @php $c = $existing[$e->emp_id] ?? ['p'=>0,'w'=>0,'cl'=>0,'sl'=>0,'pl'=>0,'a'=>0,'hd'=>0,'ot'=>0]; @endphp
+                        @php
+                            $c = $existing[$e->emp_id] ?? ['p'=>0,'w'=>0,'cl'=>0,'sl'=>0,'pl'=>0,'a'=>0,'hd'=>0,'ot'=>0];
+                            // Saved rows render zeros verbatim (so P=0/W=0 all-Absent stays
+                            // visible); unsaved rows keep zeros blank to reduce clutter.
+                            $isSaved = in_array($e->emp_id, $savedIds ?? []);
+                            $cv = fn($v) => $isSaved ? $v : ($v ?: '');
+                        @endphp
 
                         {{-- Contractor header row when group changes (workers view only) --}}
                         @if($workersOnly && $e->salary_group_id !== $lastGroupId)
@@ -180,15 +186,15 @@
                                     {{ $e->department->dept_name ?? '—' }}
                                 @endif
                             </td>
-                            <td style="background:#D1FAE5;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][p]"  value="{{ $c['p']  ?: '' }}" class="cnt cnt-p  w-full border border-[var(--line)] rounded p-1 text-xs text-center font-bold" oninput="recalcRow(this)"></td>
-                            <td style="background:#E2E8F0;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][w]"  value="{{ $c['w']  ?: '' }}" class="cnt cnt-w  w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
-                            <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][cl]" value="{{ $c['cl'] ?: '' }}" class="cnt cnt-cl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
-                            <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][sl]" value="{{ $c['sl'] ?: '' }}" class="cnt cnt-sl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
-                            <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][pl]" value="{{ $c['pl'] ?: '' }}" class="cnt cnt-pl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
-                            <td style="background:#FEE2E2;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][a]"  value="{{ $c['a']  ?: '' }}" readonly title="Auto-calculated: remaining days after P/W/CL/SL/PL/HD/PH" class="cnt cnt-a  w-full border border-[var(--line)] rounded p-1 text-xs text-center font-bold bg-rose-50 text-rose-700 cursor-not-allowed" tabindex="-1"></td>
-                            <td style="background:#FFEDD5;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][hd]" value="{{ $c['hd'] ?: '' }}" class="cnt cnt-hd w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
-                            <td style="background:#E0E7FF;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][ph]" value="{{ ($c['ph'] ?? 0) ?: '' }}" class="cnt cnt-ph w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
-                            <td style="background:#DBEAFE;padding:1px"><input type="number" min="0" max="744" step="0.5" name="row[{{ $e->emp_id }}][ot]" value="{{ $c['ot'] ?: '' }}" class="cnt-ot w-full border border-[var(--line)] rounded p-1 text-xs text-center"></td>
+                            <td style="background:#D1FAE5;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][p]"  value="{{ $cv($c['p']) }}" class="cnt cnt-p  w-full border border-[var(--line)] rounded p-1 text-xs text-center font-bold" oninput="recalcRow(this)"></td>
+                            <td style="background:#E2E8F0;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][w]"  value="{{ $cv($c['w']) }}" class="cnt cnt-w  w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
+                            <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][cl]" value="{{ $cv($c['cl']) }}" class="cnt cnt-cl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
+                            <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][sl]" value="{{ $cv($c['sl']) }}" class="cnt cnt-sl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
+                            <td style="background:#FEF3C7;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][pl]" value="{{ $cv($c['pl']) }}" class="cnt cnt-pl w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
+                            <td style="background:#FEE2E2;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][a]"  value="{{ $cv($c['a']) }}" readonly title="Auto-calculated: remaining days after P/W/CL/SL/PL/HD/PH" class="cnt cnt-a  w-full border border-[var(--line)] rounded p-1 text-xs text-center font-bold bg-rose-50 text-rose-700 cursor-not-allowed" tabindex="-1"></td>
+                            <td style="background:#FFEDD5;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][hd]" value="{{ $cv($c['hd']) }}" class="cnt cnt-hd w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
+                            <td style="background:#E0E7FF;padding:1px"><input type="number" min="0" max="{{ $totalDays }}" step="0.5" name="row[{{ $e->emp_id }}][ph]" value="{{ $cv($c['ph'] ?? 0) }}" class="cnt cnt-ph w-full border border-[var(--line)] rounded p-1 text-xs text-center" oninput="recalcRow(this)"></td>
+                            <td style="background:#DBEAFE;padding:1px"><input type="number" min="0" max="744" step="0.5" name="row[{{ $e->emp_id }}][ot]" value="{{ $cv($c['ot']) }}" class="cnt-ot w-full border border-[var(--line)] rounded p-1 text-xs text-center"></td>
                             <td class="row-total text-center font-bold" style="background:#F8FAFC">0</td>
                         </tr>
                     @empty
