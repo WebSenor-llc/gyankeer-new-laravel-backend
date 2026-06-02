@@ -343,7 +343,14 @@ class SalaryRunController extends Controller
                 'bank_acno'    => $e->bank_account_no ?? '',
             ];
 
-            foreach (array_keys($totals) as $k) $totals[$k] += (float) $row[$k];
+            // Money columns print as whole rupees per row (number_format(...,0)),
+            // so accumulate the ROUNDED value to keep the footer total equal to the
+            // sum of the printed rows. Attendance columns print at 2 decimals -> keep raw.
+            $attnKeys = ['wdays','leaves','ph','wo','abs','pdays'];
+            foreach (array_keys($totals) as $k) {
+                $val = (float) $row[$k];
+                $totals[$k] += in_array($k, $attnKeys, true) ? $val : round($val);
+            }
             $rows[] = $row;
         }
 
