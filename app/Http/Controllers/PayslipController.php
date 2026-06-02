@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\Payslip;
 use App\Models\SalaryRun;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Payslip viewer — list, individual view, and printable HTML.
@@ -34,10 +35,13 @@ class PayslipController extends Controller
 
         $payslips = $q->orderBy('emp_id')->paginate(50)->appends($req->query());
 
+        // Rows print as whole rupees (number_format(...,0)); sum the ROUNDED
+        // values so the summary cards equal the sum of the printed rows
+        // (avoids the sum-of-rounded vs round-of-sum 1-rupee drift).
         $totals = [
             'count' => Payslip::whereIn('run_id', $runIds)->count(),
-            'gross' => (float) Payslip::whereIn('run_id', $runIds)->sum('gross_earnings'),
-            'net'   => (float) Payslip::whereIn('run_id', $runIds)->sum('net_pay'),
+            'gross' => (float) Payslip::whereIn('run_id', $runIds)->sum(DB::raw('ROUND(gross_earnings)')),
+            'net'   => (float) Payslip::whereIn('run_id', $runIds)->sum(DB::raw('ROUND(net_pay)')),
         ];
 
         $salaryGroups = \App\Models\SalaryGroup::when($cid, fn($q) => $q->where('company_id', $cid))->orderBy('salary_group_name')->get();

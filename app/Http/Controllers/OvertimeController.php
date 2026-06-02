@@ -58,10 +58,12 @@ class OvertimeController extends Controller
                 'year'    => $year,
                 'month'   => $month,
                 'totals'  => [
+                    // Amount & Net Payable print as whole rupees, so sum the ROUNDED
+                    // per-row values to keep the footer equal to the printed rows.
                     'hours'   => (float) $allRecords->sum('ot_hours'),
-                    'amount'  => (float) $allRecords->sum('ot_amount'),
+                    'amount'  => (float) $allRecords->sum(fn($r) => round((float)$r->ot_amount)),
                     'esi'     => (float) $allRecords->sum(fn($r) => (float)($r->ot_esi ?? 0)),
-                    'payable' => (float) $allRecords->sum(fn($r) => (float)($r->ot_payable ?? $r->ot_amount)),
+                    'payable' => (float) $allRecords->sum(fn($r) => round((float)($r->ot_payable ?? $r->ot_amount))),
                 ],
             ]);
         }

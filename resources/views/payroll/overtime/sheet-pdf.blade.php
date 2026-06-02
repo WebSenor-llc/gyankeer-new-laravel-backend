@@ -69,9 +69,9 @@
                     <td>{{ $r->emp->esi_ip_no ?? '—' }}</td>
                     <td class="r">{{ number_format((float)($r->hourly_rate ?? ($r->ot_amount && $r->ot_hours ? $r->ot_amount / $r->ot_hours : 0)), 2) }}</td>
                     <td class="r">{{ rtrim(rtrim(number_format((float)$r->ot_hours, 2),'0'),'.') }}</td>
-                    <td class="r">{{ number_format((float)$r->ot_amount, 2) }}</td>
+                    <td class="r">{{ number_format((float)$r->ot_amount, 0) }}</td>
                     <td class="r">{{ number_format((float)($r->ot_esi ?? 0), 2) }}</td>
-                    <td class="r">{{ number_format((float)($r->ot_payable ?? $r->ot_amount), 2) }}</td>
+                    <td class="r">{{ number_format((float)($r->ot_payable ?? $r->ot_amount), 0) }}</td>
                     <td></td>
                 </tr>
             @empty
@@ -82,9 +82,9 @@
                 <tr class="totals">
                     <td colspan="6" class="r" style="background:#FCD34D">Total ::</td>
                     <td class="r">{{ number_format($totals['hours'], 2) }}</td>
-                    <td class="r">{{ number_format($totals['amount'], 2) }}</td>
+                    <td class="r">{{ number_format($totals['amount'], 0) }}</td>
                     <td class="r">{{ number_format($totals['esi'], 2) }}</td>
-                    <td class="r">{{ number_format($totals['payable'], 2) }}</td>
+                    <td class="r">{{ number_format($totals['payable'], 0) }}</td>
                     <td></td>
                 </tr>
             @endif
