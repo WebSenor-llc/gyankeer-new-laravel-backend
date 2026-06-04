@@ -209,6 +209,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/{id}/approve','leaveApprove')->name('approve');
         Route::post('/{id}/reject', 'leaveReject') ->name('reject');
         Route::get ('/balance',   'balance')      ->name('balance');
+        Route::get ('/balance/{empId}/json', 'leaveBalanceJson')->name('balance.json');
         Route::get ('/record',    'record')       ->name('record');
         Route::delete('/{id}',    'leaveDestroy') ->name('destroy');
     });

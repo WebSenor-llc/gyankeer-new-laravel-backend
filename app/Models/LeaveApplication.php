@@ -26,6 +26,7 @@ class LeaveApplication extends Model
         'from_date' => 'date',
         'to_date' => 'date',
         'half_day_flag' => 'boolean',
+        'days' => 'decimal:2',
         'applied_at' => 'datetime',
         'approval_date' => 'date',
         'active_flag' => 'boolean',

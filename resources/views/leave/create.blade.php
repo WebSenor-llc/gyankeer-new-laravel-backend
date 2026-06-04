@@ -46,6 +46,11 @@
             </div>
         </div>
 
+        <div id="balanceBox" class="hidden rounded-lg border border-[var(--line)] bg-slate-50 px-3 py-2 text-sm">
+            <div class="text-xs font-semibold text-slate-600 mb-1.5">Leave Balance <span id="balanceFy" class="font-normal text-slate-400"></span></div>
+            <div id="balanceBody" class="text-slate-700"></div>
+        </div>
+
         <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1.5">Leave Type *</label>
             <select name="leave_type_id" required class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm">
@@ -101,6 +106,31 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!wrap || !input || !hidden || !list) return;
     const items = Array.from(list.querySelectorAll('li'));
 
+    const balanceBox  = document.getElementById('balanceBox');
+    const balanceBody = document.getElementById('balanceBody');
+    const balanceFy   = document.getElementById('balanceFy');
+    const balanceUrl  = "{{ route('leave.balance.json', ['empId' => '__ID__']) }}";
+
+    const loadBalance = (empId) => {
+        if (!empId) { balanceBox.classList.add('hidden'); return; }
+        balanceBody.innerHTML = '<span class="text-slate-400">Loading…</span>';
+        balanceBox.classList.remove('hidden');
+        fetch(balanceUrl.replace('__ID__', empId), { headers: { 'Accept': 'application/json' } })
+            .then(r => r.json())
+            .then(data => {
+                balanceFy.textContent = data.fy ? '(FY ' + (data.fy - 1) + '-' + String(data.fy).slice(-2) + ')' : '';
+                if (!data.balances || !data.balances.length) {
+                    balanceBody.innerHTML = '<span class="text-slate-400">No balance records found.</span>';
+                    return;
+                }
+                balanceBody.innerHTML = data.balances.map(b =>
+                    '<span class="inline-block mr-4"><strong>' + b.leave_code + '</strong>: ' +
+                    b.closing + ' available <span class="text-slate-400">(' + b.availed + ' used)</span></span>'
+                ).join('');
+            })
+            .catch(() => { balanceBody.innerHTML = '<span class="text-red-500">Could not load balance.</span>'; });
+    };
+
     const filter = () => {
         const q = input.value.trim().toLowerCase();
         let any = false;
@@ -112,8 +142,14 @@ document.addEventListener('DOMContentLoaded', function () {
         list.classList.toggle('hidden', !any);
     };
 
-    input.addEventListener('focus', filter);
-    input.addEventListener('input', () => { hidden.value = ''; filter(); });
+    // On focus, show ALL employees and select the current text so the user can
+    // immediately pick a different one or type to narrow.
+    input.addEventListener('focus', () => {
+        items.forEach(li => li.classList.remove('hidden'));
+        list.classList.remove('hidden');
+        input.select();
+    });
+    input.addEventListener('input', () => { hidden.value = ''; filter(); balanceBox.classList.add('hidden'); });
 
     items.forEach(li => {
         li.addEventListener('mousedown', e => {
@@ -121,12 +157,25 @@ document.addEventListener('DOMContentLoaded', function () {
             hidden.value = li.dataset.id;
             input.value = li.dataset.label;
             list.classList.add('hidden');
+            loadBalance(li.dataset.id);
         });
     });
+
+    // Preselected employee (e.g. after a validation error) — load its balance.
+    if (hidden.value) loadBalance(hidden.value);
 
     document.addEventListener('click', e => {
         if (!wrap.contains(e.target)) list.classList.add('hidden');
     });
+
+    // Prevent double-submit (double-click) creating duplicate applications.
+    const form = wrap.closest('form');
+    if (form) {
+        form.addEventListener('submit', () => {
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+        });
+    }
 });
 </script>
 @endsection

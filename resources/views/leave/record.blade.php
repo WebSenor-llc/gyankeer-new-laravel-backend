@@ -46,7 +46,7 @@
                         <td>{{ $r->leave_code ?? $r->leave_type_id ?? '—' }}</td>
                         <td>{{ $r->from_date }}</td>
                         <td>{{ $r->to_date }}</td>
-                        <td>{{ $r->days ?? '—' }}</td>
+                        <td>{{ $r->days !== null ? rtrim(rtrim(number_format($r->days, 2), '0'), '.') : '—' }}</td>
                         <td class="text-xs">{{ Str::limit($r->reason, 60) }}</td>
                         <td>{{ $r->approver_name ?? '—' }}</td>
                         <td>

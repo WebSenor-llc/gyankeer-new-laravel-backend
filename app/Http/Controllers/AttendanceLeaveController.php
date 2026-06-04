@@ -988,13 +988,27 @@ class AttendanceLeaveController extends Controller
         if (!$emp) return back()->with('status', 'Employee not found.');
         $type = LeaveType::find($req->leave_type_id);
 
-        $from = \Carbon\Carbon::parse($req->from_date);
-        $to   = \Carbon\Carbon::parse($req->to_date);
-        $days = $from->diffInDays($to) + 1;
+        $from   = \Carbon\Carbon::parse($req->from_date);
+        $to     = \Carbon\Carbon::parse($req->to_date);
+        $isHalf = $req->boolean('half_day_flag') && $from->isSameDay($to);
+        // Half day only applies to a single date → counts as 0.5.
+        $days   = $isHalf ? 0.5 : ($from->diffInDays($to) + 1);
+
+        // Guard against duplicate / overlapping applications for the same employee.
+        $exists = LeaveApplication::where('emp_id', $emp->emp_id)
+            ->where('active_flag', true)
+            ->whereIn('approval_status', ['Pending', 'Approved'])
+            ->where('from_date', '<=', $to->toDateString())
+            ->where('to_date',   '>=', $from->toDateString())
+            ->exists();
+        if ($exists) {
+            return back()->withInput()
+                ->with('status', "A leave application already exists for {$emp->full_name} overlapping these dates.");
+        }
 
         // Create the leave AND reflect it into attendance (daily grid + Attendance
         // by Group counts) atomically — a sync failure rolls back the application.
-        \Illuminate\Support\Facades\DB::transaction(function () use ($emp, $type, $from, $to, $days, $req) {
+        \Illuminate\Support\Facades\DB::transaction(function () use ($emp, $type, $from, $to, $days, $isHalf, $req) {
             $leave = LeaveApplication::create([
                 'company_id'      => $emp->company_id,
                 'emp_id'          => $emp->emp_id,
@@ -1004,7 +1018,7 @@ class AttendanceLeaveController extends Controller
                 'from_date'       => $from->toDateString(),
                 'to_date'         => $to->toDateString(),
                 'days'            => $days,
-                'half_day_flag'   => $req->boolean('half_day_flag'),
+                'half_day_flag'   => $isHalf,
                 'reason'          => $req->reason,
                 'applied_at'      => now(),
                 'approval_status' => 'Approved',
@@ -1051,6 +1065,31 @@ class AttendanceLeaveController extends Controller
     public function balance()
     {
         return app(LeaveBalanceController::class)->index(request());
+    }
+
+    /**
+     * JSON leave balances for one employee in the current FY — consumed by the
+     * Apply form to show available balance once an employee is picked.
+     */
+    public function leaveBalanceJson($empId)
+    {
+        $fyStart = (int) config('hreasy.fy_start_month', 4);
+        $now     = now();
+        // FY label = end year (e.g. 2027 = Apr-2026 .. Mar-2027).
+        $fy = $now->month >= $fyStart ? $now->year + 1 : $now->year;
+
+        $rows = LeaveBalance::where('emp_id', (int) $empId)
+            ->where('fy', $fy)
+            ->get();
+
+        $balances = $rows->map(fn ($r) => [
+            'leave_code' => $r->leave_code,
+            'opening'    => (float) ($r->opening_balance ?? 0),
+            'availed'    => (float) ($r->availed_ytd ?? 0),
+            'closing'    => (float) ($r->closing_balance ?? 0),
+        ])->values();
+
+        return response()->json(['fy' => $fy, 'balances' => $balances]);
     }
 
     public function record(Request $req)
