@@ -243,7 +243,10 @@ class StatutoryController extends Controller
                 'emp_id',
                 \App\Models\Employee::where('salary_group_id', $salaryGroupId)->pluck('emp_id')
             ))
-            ->get();
+            ->get()
+            // Defensive: collapse any pre-existing duplicate rows to one per
+            // employee so the challan never lists an employee twice.
+            ->unique('emp_id')->values();
         $totals = [
             'ee'    => $rows->sum('ee_0_75'),
             'er'    => $rows->sum('er_3_25'),
@@ -277,7 +280,10 @@ class StatutoryController extends Controller
             ->whereIn('run_id', $runIds)
             ->where('esi_emp', '>', 0)
             ->when($groupEmpIds !== null, fn($q) => $q->whereIn('emp_id', $groupEmpIds))
-            ->get();
+            ->get()
+            // Guard against duplicate payslips per employee (multiple/overlapping
+            // runs) so one ESI row is emitted per employee, never duplicates.
+            ->sortByDesc('payslip_id')->unique('emp_id');
 
         EsiRecord::where('period_year', $year)->where('period_month', $month)
             ->when($cid, fn($q) => $q->where('company_id', $cid))
@@ -354,7 +360,9 @@ class StatutoryController extends Controller
             ->whereIn('run_id', $runIds)
             ->where('pt', '>', 0)
             ->when($groupEmpIds !== null, fn($q) => $q->whereIn('emp_id', $groupEmpIds))
-            ->get();
+            ->get()
+            // One PT row per employee even if duplicate payslips exist.
+            ->sortByDesc('payslip_id')->unique('emp_id');
 
         PtRecord::where('period_year', $year)->where('period_month', $month)
             ->when($cid, fn($q) => $q->where('company_id', $cid))
@@ -548,7 +556,9 @@ class StatutoryController extends Controller
             ->whereIn('run_id', $runIds)
             ->where('tds', '>', 0)
             ->when($groupEmpIds !== null, fn($q) => $q->whereIn('emp_id', $groupEmpIds))
-            ->get();
+            ->get()
+            // One TDS row per employee even if duplicate payslips exist.
+            ->sortByDesc('payslip_id')->unique('emp_id');
 
         TdsRecord::where('period_year', $year)->where('period_month', $month)
             ->when($cid, fn($q) => $q->where('company_id', $cid))
