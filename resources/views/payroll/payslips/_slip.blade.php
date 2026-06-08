@@ -188,7 +188,7 @@
                         <tr>
                             <td style="padding:2px 0;font-weight:bold">{{ $lbl }}</td>
                             <td style="width:10px">:</td>
-                            <td style="text-align:right">{{ $fmt($val) }}</td>
+                            <td style="text-align:right">{{ $fmtInt($val) }}</td>
                         </tr>
                     @endforeach
                 </table>
