@@ -59,6 +59,7 @@
 
     // Deduction labels (kept aligned to GTPPL slip ordering)
     $d_pf       = $f($payslip->epf_emp);
+    $d_vpf      = $f($payslip->vpf ?? 0);
     $d_esi      = $f($payslip->esi_emp);
     $d_advance  = $f($payslip->advance_recovery);
     $d_loan     = $f($payslip->loan_emi);
@@ -200,6 +201,7 @@
                     @php
                         $dedRows = [
                             ['PF',               $d_pf],
+                            ['VPF',              $d_vpf],
                             ['E.S.I.',           $d_esi],
                             ['Advance',          $d_advance],
                             ['Loan Amt.',        $d_loan],
