@@ -781,7 +781,7 @@ class StatutoryController extends Controller
                 $data[] = [
                     $r->ip_no ?? ($e->esi_ip_no ?? ''),
                     $r->member_name ?? ($e->full_name ?? ''),
-                    (int) round((float) ($r->days_worked ?? 0)),
+                    (float) ($r->days_worked ?? 0),
                     (int) round((float) ($r->gross_wage ?? 0)),
                     '-----',
                     $exitDate,
