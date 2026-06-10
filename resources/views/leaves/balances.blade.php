@@ -82,6 +82,7 @@
                     <th colspan="3" class="text-center" style="background:#FEF3C7">Casual Leave (CL)</th>
                     <th colspan="3" class="text-center" style="background:#DBEAFE">Privilege Leave (PL)</th>
                     <th colspan="3" class="text-center" style="background:#FCE7F3">Sick Leave (SL)</th>
+                    <th rowspan="2"></th>
                 </tr>
                 <tr>
                     <th class="text-right">Opening</th><th class="text-right">Availed</th><th class="text-right">Closing</th>
@@ -107,9 +108,13 @@
                         <td class="text-right">{{ $fmt($r['sl_opening']) }}</td>
                         <td class="text-right">{{ $fmt($r['sl_availed']) }}</td>
                         <td class="text-right font-bold">{{ $fmt($r['sl_closing']) }}</td>
+                        <td class="text-center">
+                            <a href="{{ route('leaves.balances.edit', ['empId' => $r['emp_id'], 'fy' => $fy]) }}"
+                               class="text-indigo-600 hover:underline text-xs">Edit</a>
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="12" class="text-center py-6 text-slate-500">
+                    <tr><td colspan="13" class="text-center py-6 text-slate-500">
                         No leave-balance records for FY {{ $fy-1 }}-{{ substr($fy, -2) }}{{ $salaryGroupId ? ' in selected group' : '' }}.
                         <br><span class="text-xs">Click "Import 31-Mar-2026 CSV" above to seed the balances.</span>
                     </td></tr>

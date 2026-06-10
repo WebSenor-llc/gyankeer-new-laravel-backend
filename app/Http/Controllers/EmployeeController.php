@@ -6,6 +6,8 @@ use App\Models\Bank;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
+use App\Models\LeaveBalance;
+use App\Models\LeaveType;
 use App\Models\SalaryGroup;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -375,6 +377,7 @@ class EmployeeController extends StubController
                 $emp->photo_path = $this->storeEmployeePhoto($req->file('photo'), $emp->emp_id);
                 $emp->save();
             }
+            $this->seedLeaveBalances($emp);
         } catch (\Throwable $ex) {
             \Log::error('Employee create failed: ' . $ex->getMessage(), ['data' => $data]);
             return back()->withInput()->withErrors([
@@ -384,6 +387,61 @@ class EmployeeController extends StubController
 
         return redirect()->route('employees.show', $emp->emp_id)
             ->with('status', "Employee #{$emp->emp_id} ({$emp->full_name}) created successfully.");
+    }
+
+    /**
+     * Initialise leave-balance rows for a freshly-created employee.
+     *
+     * Seeds one leave_balances row per active *recurring* (category=Annual,
+     * Paid) leave type for the current FY. Upfront-accrual types (CL, SL) get
+     * their full annual_quota as opening_balance; monthly-accrual types (EL)
+     * start at 0 and grow via accruals. closing = opening + accrued - availed,
+     * matching PayrollEngine's recompute. fy = end-year (Apr-2026..Mar-2027 = 2027),
+     * same convention as LeaveBalanceMar2026Seeder / leaveBalanceJson.
+     *
+     * Idempotent via firstOrCreate; failures are logged but never block the
+     * employee create.
+     */
+    protected function seedLeaveBalances(Employee $emp): void
+    {
+        try {
+            $fyStart = (int) config('hreasy.fy_start_month', 4);
+            $now = now();
+            $fy  = $now->month >= $fyStart ? $now->year + 1 : $now->year;
+
+            $types = LeaveType::where('active_flag', true)
+                ->where('category', 'Annual')
+                ->where('paid_unpaid', 'Paid')
+                ->where('annual_quota', '>', 0)
+                ->get();
+
+            foreach ($types as $type) {
+                $upfront = str_contains(strtolower((string) $type->accrual_method), 'upfront');
+                $opening = $upfront ? (string) $type->annual_quota : '0';
+
+                LeaveBalance::firstOrCreate(
+                    [
+                        'emp_id'     => $emp->emp_id,
+                        'leave_code' => $type->leave_code,
+                        'fy'         => $fy,
+                    ],
+                    [
+                        'company_id'      => $emp->company_id,
+                        'employee_name'   => $emp->full_name,
+                        'leave_type_id'   => $type->leave_type_id,
+                        'opening_balance' => $opening,
+                        'accrued_ytd'     => '0',
+                        'availed_ytd'     => '0',
+                        'encashed_ytd'    => '0',
+                        'lapsed_ytd'      => '0',
+                        'closing_balance' => $opening,
+                        'active_flag'     => true,
+                    ]
+                );
+            }
+        } catch (\Throwable $ex) {
+            \Log::warning("Leave-balance seed failed for emp #{$emp->emp_id}: " . $ex->getMessage());
+        }
     }
 
     public function edit($empId)

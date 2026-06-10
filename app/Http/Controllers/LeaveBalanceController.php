@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\LeaveBalance;
+use App\Models\LeaveType;
 use App\Models\Employee;
 use App\Models\SalaryGroup;
 use Illuminate\Http\Request;
@@ -152,6 +153,92 @@ class LeaveBalanceController extends Controller
             'Content-Type'        => 'application/vnd.ms-excel; charset=UTF-8',
             'Content-Disposition' => 'attachment; filename="' . $stem . '.xls"',
         ]);
+    }
+
+    /**
+     * Edit form — one editable line per active leave type for a single
+     * employee + FY. Pre-fills from existing leave_balances rows; types with
+     * no row yet show blank (zero) and only get created if a value is entered.
+     */
+    public function edit(Request $req, $empId)
+    {
+        $empId = (int) $empId;
+        $fy    = (int) $req->input('fy', 2027);
+
+        $emp = Employee::with('salary_group')->where('emp_id', $empId)->first();
+
+        // Existing balances for this emp + FY, keyed by leave_code.
+        $existing = LeaveBalance::where('emp_id', $empId)->where('fy', $fy)
+            ->get()->keyBy('leave_code');
+
+        // Active leave types drive the row list (so HR can also add a missing one).
+        $types = LeaveType::where('active_flag', true)
+            ->orderBy('leave_type_id')->get();
+
+        // Snapshot name for orphan balances (employee row absent).
+        $empName = $emp?->full_name ?? $existing->first()?->employee_name ?? '(unknown)';
+
+        return view('leaves.balance-edit', compact('empId', 'fy', 'emp', 'empName', 'existing', 'types'));
+    }
+
+    /**
+     * Persist edited balances. For each leave type we recompute
+     * closing = opening + accrued − availed − encashed − lapsed.
+     * A type left all-zero with no pre-existing row is skipped (no noise rows).
+     * NOTE: the next payroll run will recompute closing as opening+accrued−availed
+     * from the leave_ledger — these edits are an admin override of the snapshot.
+     */
+    public function update(Request $req, $empId)
+    {
+        $empId = (int) $empId;
+        $fy    = (int) $req->input('fy', 2027);
+
+        $emp     = Employee::where('emp_id', $empId)->first();
+        $rows    = $req->input('rows', []);   // [leave_code => [opening, accrued, availed, encashed, lapsed]]
+        $types   = LeaveType::where('active_flag', true)->get()->keyBy('leave_code');
+        $saved   = 0;
+
+        foreach ($rows as $code => $vals) {
+            $type = $types->get($code);
+            if (!$type) continue;
+
+            $opening  = (float) ($vals['opening']  ?? 0);
+            $accrued  = (float) ($vals['accrued']  ?? 0);
+            $availed  = (float) ($vals['availed']  ?? 0);
+            $encashed = (float) ($vals['encashed'] ?? 0);
+            $lapsed   = (float) ($vals['lapsed']   ?? 0);
+
+            $existing = LeaveBalance::where('emp_id', $empId)
+                ->where('fy', $fy)->where('leave_code', $code)->first();
+
+            // Skip all-zero rows that don't already exist — avoids creating noise.
+            if (!$existing && $opening == 0 && $accrued == 0 && $availed == 0
+                && $encashed == 0 && $lapsed == 0) {
+                continue;
+            }
+
+            $closing = $opening + $accrued - $availed - $encashed - $lapsed;
+
+            LeaveBalance::updateOrCreate(
+                ['emp_id' => $empId, 'fy' => $fy, 'leave_code' => $code],
+                [
+                    'company_id'      => $emp?->company_id ?? $existing?->company_id,
+                    'employee_name'   => $emp?->full_name ?? $existing?->employee_name,
+                    'leave_type_id'   => $type->leave_type_id,
+                    'opening_balance' => (string) $opening,
+                    'accrued_ytd'     => (string) $accrued,
+                    'availed_ytd'     => (string) $availed,
+                    'encashed_ytd'    => (string) $encashed,
+                    'lapsed_ytd'      => (string) $lapsed,
+                    'closing_balance' => (string) $closing,
+                    'active_flag'     => true,
+                ]
+            );
+            $saved++;
+        }
+
+        return redirect()->route('leaves.balances', ['fy' => $fy])
+            ->with('status', "✅ Saved {$saved} leave-balance row(s) for emp #{$empId}.");
     }
 
     /**

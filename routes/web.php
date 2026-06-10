@@ -148,8 +148,10 @@ Route::middleware(['auth'])->group(function () {
     Route::get ('/payroll/statistical',    [ReportController::class,'statistical'])->name('reports.statistical');
 
     // ============== Leave Balances ==============
-    Route::get ('/leaves/balances',         [LeaveBalanceController::class, 'index'])->name('leaves.balances');
-    Route::post('/leaves/balances/import',  [LeaveBalanceController::class, 'import'])->name('leaves.balances.import');
+    Route::get ('/leaves/balances',              [LeaveBalanceController::class, 'index'])->name('leaves.balances');
+    Route::get ('/leaves/balances/{empId}/edit', [LeaveBalanceController::class, 'edit'])->name('leaves.balances.edit');
+    Route::put ('/leaves/balances/{empId}',      [LeaveBalanceController::class, 'update'])->name('leaves.balances.update');
+    Route::post('/leaves/balances/import',       [LeaveBalanceController::class, 'import'])->name('leaves.balances.import');
     // Friendly aliases so /leave/balance and /leave/balances also work
     Route::get ('/leave/balance',           fn () => redirect()->route('leaves.balances'));
     Route::get ('/leave/balances',          fn () => redirect()->route('leaves.balances'));
