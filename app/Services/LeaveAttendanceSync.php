@@ -115,10 +115,9 @@ class LeaveAttendanceSync
 
         $totalDays = (int) Carbon::createFromDate($year, $month, 1)->daysInMonth;
 
-        $sundays = 0;
-        for ($d = 1; $d <= $totalDays; $d++) {
-            if (Carbon::createFromDate($year, $month, $d)->dayOfWeek === Carbon::SUNDAY) $sundays++;
-        }
+        // Default weekly-off count = occurrences of this employee's off weekday
+        // (employees.weekly_off_pattern; blank => Sunday).
+        $weeklyOff = \App\Support\WeeklyOff::countInMonth($emp->weekly_off_pattern, $year, $month);
 
         $hasPh = Schema::hasColumn('attendance_summary', 'ph_count');
 
@@ -128,7 +127,7 @@ class LeaveAttendanceSync
             ->first();
 
         // Preserve non-leave buckets; default to the standard month pattern when new.
-        $w  = $existing ? (float) $existing->w_count  : (float) $sundays;
+        $w  = $existing ? (float) $existing->w_count  : (float) $weeklyOff;
         $a  = $existing ? (float) $existing->a_count  : 0.0;
         $hd = $existing ? (float) $existing->hd_count : 0.0;
         $ph = $existing && $hasPh ? (float) $existing->ph_count : 0.0;

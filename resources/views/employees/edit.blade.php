@@ -147,6 +147,13 @@
                         @foreach(['Staff','Sub-Staff','Worker','Contract','Trainee'] as $t)<option value="{{ $t }}" @selected($emp->employee_type === $t)>{{ $t }}</option>@endforeach
                     </select>
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Weekly Off</label>
+                    <select name="weekly_off_pattern" class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm">
+                        @foreach(\App\Support\WeeklyOff::options() as $code => $label)<option value="{{ $code }}" @selected($emp->weekly_off_pattern === $code)>{{ $label }}</option>@endforeach
+                    </select>
+                    <p class="text-[11px] text-slate-500 mt-1">Day marked as Weekly Off in attendance. Blank defaults to Sunday.</p>
+                </div>
                 {!! $f('date_of_joining', 'Date of Joining',  $emp->date_of_joining ? \Carbon\Carbon::parse($emp->date_of_joining)->format('Y-m-d') : '', 'date')!!}
                 {!! $f('cost_center',     'Cost Center',      $emp->cost_center)!!}
                 {!! $f('business_unit',   'Business Unit',    $emp->business_unit)!!}

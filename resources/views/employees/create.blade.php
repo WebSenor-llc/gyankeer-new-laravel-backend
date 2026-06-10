@@ -61,6 +61,13 @@
                         @endforeach
                     </select>
                 </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-600 mb-1.5">Weekly Off</label>
+                    <select name="weekly_off_pattern" class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm">
+                        @foreach(\App\Support\WeeklyOff::options() as $code => $label)<option value="{{ $code }}" @selected(old('weekly_off_pattern', 'Sun')===$code)>{{ $label }}</option>@endforeach
+                    </select>
+                    <p class="text-[11px] text-slate-500 mt-1">Day marked as Weekly Off in attendance.</p>
+                </div>
                 {!! $f('role', 'Role') !!}
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-1.5">Name Prefix</label>

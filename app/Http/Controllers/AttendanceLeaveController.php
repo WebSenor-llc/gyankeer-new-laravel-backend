@@ -334,21 +334,20 @@ class AttendanceLeaveController extends Controller
             // Default everything to empty
             $statusByDay = array_fill_keys(range(1, $totalDays), null);
 
-            // Step 1 — Mark Sundays as Weekly Off (up to W count)
+            // Step 1 — Mark the employee's weekly-off weekday as Weekly Off (up to W count).
+            // weekly_off_pattern (blank => Sunday) decides which weekday.
             $woCount = (int) ($cfg['w'] ?? 0);
-            $sundays = collect($dows)->filter(fn($dt) => $dt->dayOfWeek === 0)->keys()->all();
+            $offDays = \App\Support\WeeklyOff::daysInMonth($emp->weekly_off_pattern, $year, $month);
             $woAssigned = 0;
-            foreach ($sundays as $day) {
+            foreach ($offDays as $day) {
                 if ($woAssigned >= $woCount) break;
                 $statusByDay[$day] = 'Weekly Off';
                 $woAssigned++;
             }
-            // If still W left over (e.g. user wants 5 W but month has only 4 Sundays),
-            // assign extras to Saturdays
+            // If still W left over (user wants more W than the month has off-days),
+            // spill onto the next free days.
             if ($woAssigned < $woCount) {
-                $saturdays = collect($dows)->filter(fn($dt) => $dt->dayOfWeek === 6)->keys()->all();
-                foreach ($saturdays as $day) {
-                    if ($woAssigned >= $woCount) break;
+                for ($day = 1; $day <= $totalDays && $woAssigned < $woCount; $day++) {
                     if ($statusByDay[$day] === null) {
                         $statusByDay[$day] = 'Weekly Off';
                         $woAssigned++;
@@ -697,15 +696,16 @@ class AttendanceLeaveController extends Controller
         }
 
         // ── DEFAULT for employees still empty (no summary AND no daily entries) ──
-        // Pre-fill with the standard month pattern: (TotalDays − Sundays) Present
-        // + Sundays as Weekly Off. April 2026 → 26 P + 4 W. Saves manual entry
-        // for employees with normal full-month attendance.
-        $defaultP = $totalDays - $sundays;
-        $defaultW = $sundays;
+        // Pre-fill with the standard month pattern: W = occurrences of the
+        // employee's OWN weekly-off weekday (weekly_off_pattern; blank => Sunday),
+        // and Present fills the rest. e.g. Apr 2026 → 26 P + 4 W. Saves manual
+        // entry for employees with normal full-month attendance.
+        $offPatternByEmp = $employees->pluck('weekly_off_pattern', 'emp_id');
         foreach ($empIds as $empIdKey) {
             if (!$existing->has($empIdKey)) {
+                $defaultW = \App\Support\WeeklyOff::countInMonth($offPatternByEmp[$empIdKey] ?? null, $year, $month);
                 $existing[$empIdKey] = [
-                    'p'  => $defaultP,
+                    'p'  => $totalDays - $defaultW,
                     'w'  => $defaultW,
                     'cl' => 0,
                     'sl' => 0,
@@ -742,9 +742,6 @@ class AttendanceLeaveController extends Controller
         for ($d = 1; $d <= $totalDays; $d++) {
             $dows[$d] = \Carbon\Carbon::createFromDate($year, $month, $d);
         }
-        $sundayDays = collect($dows)->filter(fn($dt) => $dt->dayOfWeek === 0)->keys()->all();
-        $saturdayDays = collect($dows)->filter(fn($dt) => $dt->dayOfWeek === 6)->keys()->all();
-
         $employeesProcessed = 0;
         $totalCells = 0;
         $errors = [];
@@ -839,16 +836,17 @@ class AttendanceLeaveController extends Controller
                     : $fragments[$i] . ' Half';
             }
 
-            // Step 1 — W/Off: Sundays first, then Saturdays
+            // Step 1 — W/Off on the employee's own weekly-off weekday
+            // (weekly_off_pattern; blank => Sunday), then spill to free days.
+            $offDays = \App\Support\WeeklyOff::daysInMonth($emp->weekly_off_pattern, $year, $month);
             $woAssigned = 0;
-            foreach ($sundayDays as $day) {
+            foreach ($offDays as $day) {
                 if ($woAssigned >= $whole['w']) break;
                 $statusByDay[$day] = 'Weekly Off';
                 $woAssigned++;
             }
             if ($woAssigned < $whole['w']) {
-                foreach ($saturdayDays as $day) {
-                    if ($woAssigned >= $whole['w']) break;
+                for ($day = 1; $day <= $totalDays && $woAssigned < $whole['w']; $day++) {
                     if ($statusByDay[$day] === null) {
                         $statusByDay[$day] = 'Weekly Off';
                         $woAssigned++;
