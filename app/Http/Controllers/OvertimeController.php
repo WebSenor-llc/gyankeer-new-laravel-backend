@@ -143,20 +143,38 @@ class OvertimeController extends Controller
         $hours  = (float) $req->ot_hours;
         $b      = OvertimeRecord::computeBreakdown($emp, $rate, $hours);
 
-        OvertimeRecord::updateOrCreate(
-            ['emp_id' => $emp->emp_id, 'period_year' => $req->integer('period_year'), 'period_month' => $req->integer('period_month')],
-            [
-                'company_id'         => $emp->company_id,
-                'ot_rate'            => $rate,
-                'hourly_rate'        => $b['hourly_rate'],
-                'ot_hours'           => $hours,
-                'ot_amount'          => $b['ot_amount'],
-                'ot_esi'             => $b['ot_esi'],
-                'ot_payable'         => $b['ot_payable'],
-                'notes'              => $req->notes,
-                'created_by_user_id' => auth()->id(),
-            ]
-        );
+        // Look up including soft-deleted rows: the unique index
+        // (emp_id, period_year, period_month) ignores deleted_at, so a trashed
+        // row still occupies the slot and a plain updateOrCreate would INSERT and
+        // hit a 1062 duplicate. Restore-and-update instead.
+        $rec = OvertimeRecord::withTrashed()
+            ->where('emp_id', $emp->emp_id)
+            ->where('period_year', $req->integer('period_year'))
+            ->where('period_month', $req->integer('period_month'))
+            ->first();
+
+        $payload = [
+            'company_id'         => $emp->company_id,
+            'ot_rate'            => $rate,
+            'hourly_rate'        => $b['hourly_rate'],
+            'ot_hours'           => $hours,
+            'ot_amount'          => $b['ot_amount'],
+            'ot_esi'             => $b['ot_esi'],
+            'ot_payable'         => $b['ot_payable'],
+            'notes'              => $req->notes,
+            'created_by_user_id' => auth()->id(),
+            'deleted_at'         => null,
+        ];
+
+        if ($rec) {
+            $rec->fill($payload)->save();
+        } else {
+            OvertimeRecord::create($payload + [
+                'emp_id'       => $emp->emp_id,
+                'period_year'  => $req->integer('period_year'),
+                'period_month' => $req->integer('period_month'),
+            ]);
+        }
 
         return redirect()->route('overtime-sheet', ['year' => $req->period_year, 'month' => $req->period_month])
             ->with('status', "Saved OT for {$emp->full_name}: {$hours} hrs × {$rate}× @ ₹"
