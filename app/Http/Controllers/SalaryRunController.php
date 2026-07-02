@@ -393,8 +393,47 @@ class SalaryRunController extends Controller
             ->get();
         $cells = [];
         foreach ($daily as $row) {
+            // leave_applications is the authority for leave — skip attendance_daily's
+            // own "On Leave" markers so stale/unbacked leave days don't appear.
+            if (strtolower(trim((string) $row->status)) === 'on leave') {
+                continue;
+            }
             $day = (int) \Carbon\Carbon::parse($row->attn_date)->format('j');
             $cells[$row->emp_id][$day] = $this->musterCode($row->status, $row->status_reason);
+        }
+
+        // Leave cells come only from approved leave applications, placed on their dates.
+        $periodStart = \Carbon\Carbon::createFromDate($year, $month, 1)->startOfDay();
+        $periodEnd   = $periodStart->copy()->endOfMonth();
+        $leaveApps = \App\Models\LeaveApplication::whereIn('emp_id', $empIds)
+            ->whereRaw('LOWER(approval_status) = ?', ['approved'])
+            ->whereDate('from_date', '<=', $periodEnd->toDateString())
+            ->whereDate('to_date', '>=', $periodStart->toDateString())
+            ->get();
+        foreach ($leaveApps as $la) {
+            $code = $this->leaveShortCode($la->leave_code);
+            $from = \Carbon\Carbon::parse($la->from_date)->max($periodStart);
+            $to   = \Carbon\Carbon::parse($la->to_date)->min($periodEnd);
+            for ($d = $from->copy(); $d->lte($to); $d->addDay()) {
+                $day = (int) $d->format('j');
+                $existing = $cells[$la->emp_id][$day] ?? '';
+                // Keep weekly-off / holiday markers; overwrite present/absent/blank.
+                if (in_array($existing, ['WO', 'PH'], true)) {
+                    continue;
+                }
+                $cells[$la->emp_id][$day] = $la->half_day_flag ? 'HD' : $code;
+            }
+        }
+
+        // Any remaining gap on a day for an employee who has attendance = Present.
+        // (Unmarked day = present, matching the "Payable = Days − Absent" formula and
+        // the summary present count; leaves/week-offs/absents are already placed.)
+        foreach (array_keys($cells) as $eid) {
+            for ($day = 1; $day <= $daysInMonth; $day++) {
+                if (empty($cells[$eid][$day])) {
+                    $cells[$eid][$day] = 'P';
+                }
+            }
         }
 
         // Authoritative summary counts per employee
@@ -464,6 +503,18 @@ class SalaryRunController extends Controller
             default:
                 return $status !== '' ? strtoupper(substr($status, 0, 2)) : '';
         }
+    }
+
+    /** Map a leave_applications.leave_code to a short muster code. */
+    protected function leaveShortCode(?string $leaveCode): string
+    {
+        $r = strtoupper(trim((string) $leaveCode));
+        if ($r === '') return 'L';
+        if (str_contains($r, 'CL'))  return 'CL';
+        if (str_contains($r, 'SL'))  return 'SL';
+        if (str_contains($r, 'PL'))  return 'PL';
+        if (str_contains($r, 'LWP')) return 'LWP';
+        return 'L';
     }
 
     protected function streamCsv(string $filename, array $columns, array $dataRows, array $totalsRow)

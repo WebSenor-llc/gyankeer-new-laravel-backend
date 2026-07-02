@@ -29,7 +29,7 @@
         td.code-PH { background: #F3E8FF; color: #6B21A8; }
         td.code-HD { background: #FFEDD5; }
         td.code-OD { background: #DBEAFE; }
-        td.code-CL, td.code-SL, td.code-PL, td.code-L { background: #FEF3C7; }
+        td.code-CL, td.code-SL, td.code-PL, td.code-LWP, td.code-L { background: #FEF3C7; }
         .name { width: 130px; }
         .sumcol { width: 26px; }
         tr.totals-row td { background: #FEF3C7; font-weight: bold; }
