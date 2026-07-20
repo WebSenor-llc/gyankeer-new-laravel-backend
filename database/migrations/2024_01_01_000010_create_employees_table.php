@@ -232,7 +232,10 @@ return new class extends Migration {
 
         // Belt-and-suspenders: enforce DYNAMIC row format so any future TEXT
         // columns are stored off-row and never re-trigger the row-size error.
-        DB::statement('ALTER TABLE `employees` ROW_FORMAT=DYNAMIC');
+        // MySQL-only DDL — skipped on sqlite (used by the test suite).
+        if (DB::getDriverName() === 'mysql') {
+            DB::statement('ALTER TABLE `employees` ROW_FORMAT=DYNAMIC');
+        }
     }
 
     public function down(): void

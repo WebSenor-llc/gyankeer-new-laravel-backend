@@ -983,7 +983,7 @@ class AttendanceLeaveController extends Controller
         ]);
 
         $emp  = Employee::find($req->emp_id);
-        if (!$emp) return back()->with('status', 'Employee not found.');
+        if (!$emp) return back()->withInput()->withErrors(['emp_id' => 'Employee not found.']);
         $type = LeaveType::find($req->leave_type_id);
 
         $from   = \Carbon\Carbon::parse($req->from_date);
@@ -1000,8 +1000,24 @@ class AttendanceLeaveController extends Controller
             ->where('to_date',   '>=', $from->toDateString())
             ->exists();
         if ($exists) {
-            return back()->withInput()
-                ->with('status', "A leave application already exists for {$emp->full_name} overlapping these dates.");
+            return back()->withInput()->withErrors([
+                'from_date' => "A leave application already exists for {$emp->full_name} overlapping these dates.",
+            ]);
+        }
+
+        // Balance guard — an employee with no allotment (or an exhausted one)
+        // must not be granted paid leave. "Available" accounts for leave already
+        // applied this FY that payroll hasn't consumed into the ledger yet.
+        $code      = $type?->leave_code;
+        $available = app(\App\Services\LeaveBalanceService::class)->available($emp->emp_id, $code);
+        if ($days > $available) {
+            $label = $code ?: 'leave';
+            return back()->withInput()->withErrors([
+                'leave_type_id' => sprintf(
+                    'Insufficient %s balance for %s — %s day(s) available, %s requested.',
+                    $label, $emp->full_name, rtrim(rtrim(number_format($available, 2, '.', ''), '0'), '.') ?: '0', $days
+                ),
+            ]);
         }
 
         // Create the leave AND reflect it into attendance (daily grid + Attendance
@@ -1071,23 +1087,14 @@ class AttendanceLeaveController extends Controller
      */
     public function leaveBalanceJson($empId)
     {
-        $fyStart = (int) config('hreasy.fy_start_month', 4);
-        $now     = now();
         // FY label = end year (e.g. 2027 = Apr-2026 .. Mar-2027).
-        $fy = $now->month >= $fyStart ? $now->year + 1 : $now->year;
+        $svc = app(\App\Services\LeaveBalanceService::class);
+        $fy  = $svc->fy();
 
-        $rows = LeaveBalance::where('emp_id', (int) $empId)
-            ->where('fy', $fy)
-            ->get();
-
-        $balances = $rows->map(fn ($r) => [
-            'leave_code' => $r->leave_code,
-            'opening'    => (float) ($r->opening_balance ?? 0),
-            'availed'    => (float) ($r->availed_ytd ?? 0),
-            'closing'    => (float) ($r->closing_balance ?? 0),
-        ])->values();
-
-        return response()->json(['fy' => $fy, 'balances' => $balances]);
+        return response()->json([
+            'fy'       => $fy,
+            'balances' => $svc->availableAll((int) $empId, $fy),
+        ]);
     }
 
     public function record(Request $req)

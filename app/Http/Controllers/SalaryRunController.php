@@ -395,7 +395,14 @@ class SalaryRunController extends Controller
         foreach ($daily as $row) {
             // leave_applications is the authority for leave — skip attendance_daily's
             // own "On Leave" markers so stale/unbacked leave days don't appear.
-            if (strtolower(trim((string) $row->status)) === 'on leave') {
+            // Counts-sourced "Half Day" cells are fabricated from monthly totals
+            // (see AttendanceLeaveController::saveCounts) and land on arbitrary
+            // dates, so drop those too and let leave_applications place them.
+            $status = strtolower(trim((string) $row->status));
+            if ($status === 'on leave') {
+                continue;
+            }
+            if ($status === 'half day' && $row->source === 'counts') {
                 continue;
             }
             $day = (int) \Carbon\Carbon::parse($row->attn_date)->format('j');
@@ -412,6 +419,11 @@ class SalaryRunController extends Controller
             ->get();
         foreach ($leaveApps as $la) {
             $code = $this->leaveShortCode($la->leave_code);
+            // half_day_flag only means a half day on a single-date application;
+            // on a range it must not stamp HD across every day (matches
+            // LeaveAttendanceSync::sync and AttendanceLeaveController).
+            $isHalf = (bool) $la->half_day_flag
+                && \Carbon\Carbon::parse($la->from_date)->isSameDay(\Carbon\Carbon::parse($la->to_date));
             $from = \Carbon\Carbon::parse($la->from_date)->max($periodStart);
             $to   = \Carbon\Carbon::parse($la->to_date)->min($periodEnd);
             for ($d = $from->copy(); $d->lte($to); $d->addDay()) {
@@ -421,7 +433,7 @@ class SalaryRunController extends Controller
                 if (in_array($existing, ['WO', 'PH'], true)) {
                     continue;
                 }
-                $cells[$la->emp_id][$day] = $la->half_day_flag ? 'HD' : $code;
+                $cells[$la->emp_id][$day] = $isHalf ? 'HD' : $code;
             }
         }
 

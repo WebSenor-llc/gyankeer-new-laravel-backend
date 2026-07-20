@@ -53,10 +53,10 @@
 
         <div>
             <label class="block text-xs font-semibold text-slate-600 mb-1.5">Leave Type *</label>
-            <select name="leave_type_id" required class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm">
+            <select name="leave_type_id" id="leaveTypeSelect" required class="block w-full border border-[var(--line)] rounded-lg p-2 text-sm">
                 <option value="">— Select type —</option>
                 @foreach($leaveTypes as $t)
-                    <option value="{{ $t->leave_type_id }}" @selected(old('leave_type_id') == $t->leave_type_id)>
+                    <option value="{{ $t->leave_type_id }}" data-code="{{ $t->leave_code }}" @selected(old('leave_type_id') == $t->leave_type_id)>
                         {{ $t->leave_code }} — {{ $t->leave_name ?? $t->leave_code }}
                     </option>
                 @endforeach
@@ -110,25 +110,61 @@ document.addEventListener('DOMContentLoaded', function () {
     const balanceBody = document.getElementById('balanceBody');
     const balanceFy   = document.getElementById('balanceFy');
     const balanceUrl  = "{{ route('leave.balance.json', ['empId' => '__ID__']) }}";
+    const typeSelect  = document.getElementById('leaveTypeSelect');
+
+    const fmt = n => (Math.round(n * 100) / 100).toString();
+
+    // Grey out leave types the employee has nothing left of. Labels are rebuilt
+    // from a stashed base each time so switching employees doesn't stack suffixes.
+    const gateTypes = (balances) => {
+        if (!typeSelect) return;
+        const byCode = {};
+        (balances || []).forEach(b => { byCode[b.leave_code] = b; });
+
+        Array.from(typeSelect.options).forEach(opt => {
+            if (!opt.value) return;
+            if (opt.dataset.baseLabel === undefined) opt.dataset.baseLabel = opt.textContent.trim();
+            const b = byCode[opt.dataset.code];
+            const available = b ? Number(b.available) : 0;
+            opt.disabled    = available <= 0;
+            opt.textContent = opt.dataset.baseLabel + ' — ' + fmt(available) + ' available';
+        });
+
+        if (typeSelect.selectedOptions[0]?.disabled) typeSelect.value = '';
+    };
+
+    const resetTypes = () => {
+        if (!typeSelect) return;
+        Array.from(typeSelect.options).forEach(opt => {
+            if (!opt.value || opt.dataset.baseLabel === undefined) return;
+            opt.disabled    = false;
+            opt.textContent = opt.dataset.baseLabel;
+        });
+    };
 
     const loadBalance = (empId) => {
-        if (!empId) { balanceBox.classList.add('hidden'); return; }
+        if (!empId) { resetTypes(); balanceBox.classList.add('hidden'); return; }
         balanceBody.innerHTML = '<span class="text-slate-400">Loading…</span>';
         balanceBox.classList.remove('hidden');
         fetch(balanceUrl.replace('__ID__', empId), { headers: { 'Accept': 'application/json' } })
             .then(r => r.json())
             .then(data => {
                 balanceFy.textContent = data.fy ? '(FY ' + (data.fy - 1) + '-' + String(data.fy).slice(-2) + ')' : '';
+                gateTypes(data.balances);
                 if (!data.balances || !data.balances.length) {
                     balanceBody.innerHTML = '<span class="text-slate-400">No balance records found.</span>';
                     return;
                 }
                 balanceBody.innerHTML = data.balances.map(b =>
-                    '<span class="inline-block mr-4"><strong>' + b.leave_code + '</strong>: ' +
-                    b.closing + ' available <span class="text-slate-400">(' + b.availed + ' used)</span></span>'
+                    '<span class="inline-block mr-4 ' + (Number(b.available) <= 0 ? 'text-slate-400' : '') + '"><strong>' +
+                    b.leave_code + '</strong>: ' + fmt(Number(b.available)) +
+                    ' available <span class="text-slate-400">(' + fmt(Number(b.availed)) + ' used)</span></span>'
                 ).join('');
             })
-            .catch(() => { balanceBody.innerHTML = '<span class="text-red-500">Could not load balance.</span>'; });
+            .catch(() => {
+                resetTypes();
+                balanceBody.innerHTML = '<span class="text-red-500">Could not load balance.</span>';
+            });
     };
 
     const filter = () => {
@@ -149,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function () {
         list.classList.remove('hidden');
         input.select();
     });
-    input.addEventListener('input', () => { hidden.value = ''; filter(); balanceBox.classList.add('hidden'); });
+    input.addEventListener('input', () => { hidden.value = ''; filter(); resetTypes(); balanceBox.classList.add('hidden'); });
 
     items.forEach(li => {
         li.addEventListener('mousedown', e => {

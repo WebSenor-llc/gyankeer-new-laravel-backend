@@ -20,6 +20,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        // MySQL-only: REGEXP + MODIFY COLUMN. On sqlite (test suite) the schema
+        // is created fresh from the base migrations, so there is nothing to fix.
+        if (DB::getDriverName() !== 'mysql') return;
+
         // 1. employees.current_conv & current_med
         DB::statement("UPDATE employees SET current_conv = NULL WHERE current_conv = '' OR current_conv NOT REGEXP '^-?[0-9]+(\\\\.[0-9]+)?$'");
         DB::statement("UPDATE employees SET current_med  = NULL WHERE current_med  = '' OR current_med  NOT REGEXP '^-?[0-9]+(\\\\.[0-9]+)?$'");
@@ -37,6 +41,7 @@ return new class extends Migration {
 
     public function down(): void
     {
+        if (DB::getDriverName() !== 'mysql') return;
         DB::statement("ALTER TABLE employees MODIFY current_conv VARCHAR(50) NULL");
         DB::statement("ALTER TABLE employees MODIFY current_med  VARCHAR(50) NULL");
         DB::statement("ALTER TABLE payslips  MODIFY payable_days VARCHAR(50) NULL");
