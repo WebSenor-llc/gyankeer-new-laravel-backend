@@ -57,6 +57,7 @@
                     <div class="font-semibold">{{ auth()->user()?->name ?? 'Guest' }}</div>
                     <div class="text-white/70">HR Admin</div>
                 </div>
+                @auth<a href="{{ route('password.edit') }}" class="ml-2 text-xs underline" title="Change your password">Password</a>@endauth
                 <form action="{{ route('logout') }}" method="POST" class="ml-2">@csrf<button class="text-xs underline">Logout</button></form>
             </div>
         </div>

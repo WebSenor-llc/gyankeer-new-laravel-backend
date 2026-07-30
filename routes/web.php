@@ -24,6 +24,7 @@ use App\Http\Controllers\ReportController;
 use App\Http\Controllers\ESSController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\PasswordController;
 
 /*
 |--------------------------------------------------------------------------
@@ -243,4 +244,8 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::resource('settings', SettingsController::class)->only(['index','update']);
+
+    // ============== Account — change own password ==============
+    Route::get  ('/password', [PasswordController::class, 'edit'])  ->name('password.edit');
+    Route::patch('/password', [PasswordController::class, 'update'])->name('password.update');
 });
