@@ -276,9 +276,12 @@ class StatutoryController extends Controller
             ? \App\Models\Employee::where('salary_group_id', $salaryGroupId)->pluck('emp_id')
             : null;
 
+        // NOTE: do NOT pre-filter on esi_emp > 0 in SQL — an ESI-covered employee
+        // who was absent the entire month has 0 wages and hence 0 contribution,
+        // but ESIC still requires them in the return with 0 payable days and a
+        // zero-working-days reason code. Row selection happens in the loop below.
         $payslips = \App\Models\Payslip::with('emp')
             ->whereIn('run_id', $runIds)
-            ->where('esi_emp', '>', 0)
             ->when($groupEmpIds !== null, fn($q) => $q->whereIn('emp_id', $groupEmpIds))
             ->get()
             // Guard against duplicate payslips per employee (multiple/overlapping
@@ -293,6 +296,18 @@ class StatutoryController extends Controller
         $count = 0;
         foreach ($payslips as $p) {
             if (!$p->emp) continue;
+
+            $esiEe = (float) $p->esi_emp;
+            $days  = (float) ($p->payable_days ?? 0);
+            // ESI-covered = has an IP number and the per-employee ESI toggle is on.
+            $covered = trim((string) ($p->emp->esi_ip_no ?? '')) !== ''
+                       && ($p->emp->esi_applicable_flag ?? true);
+
+            // Keep contributing employees, plus covered employees with zero
+            // payable days (full-month absent / LOP). Skip everyone else with
+            // no contribution (e.g. above the ₹21,000 wage ceiling).
+            if ($esiEe <= 0 && !($covered && $days <= 0)) continue;
+
             EsiRecord::create([
                 'period_year'  => $year,
                 'period_month' => $month,
@@ -778,12 +793,18 @@ class StatutoryController extends Controller
                 $exitDate = ($e && !empty($e->date_of_relieving))
                     ? \Carbon\Carbon::parse($e->date_of_relieving)->format('d/m/Y')
                     : '';
+                // ESIC zero-working-days reason code — mandatory when payable
+                // days = 0, must stay blank ("-----") otherwise.
+                //   1 = On Leave · 2 = Left Service
+                $days   = (float) ($r->days_worked ?? 0);
+                $reason = $days > 0 ? '-----' : ($exitDate !== '' ? '2' : '1');
+
                 $data[] = [
                     $r->ip_no ?? ($e->esi_ip_no ?? ''),
                     $r->member_name ?? ($e->full_name ?? ''),
-                    (float) ($r->days_worked ?? 0),
+                    $days,
                     (int) round((float) ($r->gross_wage ?? 0)),
-                    '-----',
+                    $reason,
                     $exitDate,
                     $e->salary_group->salary_group_name ?? '',
                     $e->company->company_code ?? ($company->company_code ?? ''),
