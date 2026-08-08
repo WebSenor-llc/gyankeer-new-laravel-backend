@@ -37,6 +37,32 @@ class StatutoryController extends Controller
         $cid           = (int) session('active_company_id', 0);
         $salaryGroupId = (int) $req->input('salary_group_id', 0);
 
+        $rows = $this->pfChallanRows($year, $month, $cid, $salaryGroupId);
+
+        // Round each row to whole rupees first, then sum — same rule as the
+        // PDF/Excel exporter, so screen and file totals always agree.
+        $totals = [
+            'ee'    => $rows->sum(fn($r) => round((float) $r->ee_share_12pct)),
+            'eps'   => $rows->sum(fn($r) => round((float) $r->eps_8_33)),
+            'er'    => $rows->sum(fn($r) => round((float) $r->er_share_3_67)),
+            'edli'  => $rows->sum(fn($r) => round((float) $r->edli_0_5)),
+            'admin' => $rows->sum(fn($r) => round((float) $r->pf_admin_0_5)),
+        ];
+        $totals['challan'] = array_sum($totals);
+
+        $salaryGroups = $this->salaryGroups($cid);
+
+        return view('statutory.pf-challan', compact(
+            'rows', 'totals', 'year', 'month', 'salaryGroups', 'salaryGroupId'
+        ));
+    }
+
+    /**
+     * The PF challan row set — shared by the screen, the PDF and the CSV/XLS
+     * export so all three always show identical rows in identical order.
+     */
+    protected function pfChallanRows(int $year, int $month, int $cid, int $salaryGroupId)
+    {
         // Exclude employees who left before this period (date_of_relieving <
         // first-of-month). Mid-period leavers stay — they were paid this month
         // and their PF must still be filed on EPFO.
@@ -59,22 +85,10 @@ class StatutoryController extends Controller
             ->groupBy('emp_id', 'company_id')
             ->pluck('ecr_id');
 
-        $rows = PfEcrRecord::with('emp:emp_id,epf_member_id')->whereIn('ecr_id', $latestIds)->get();
-
-        $totals = [
-            'ee'    => $rows->sum('ee_share_12pct'),
-            'eps'   => $rows->sum('eps_8_33'),
-            'er'    => $rows->sum('er_share_3_67'),
-            'edli'  => $rows->sum('edli_0_5'),
-            'admin' => $rows->sum('pf_admin_0_5'),
-        ];
-        $totals['challan'] = array_sum($totals);
-
-        $salaryGroups = $this->salaryGroups($cid);
-
-        return view('statutory.pf-challan', compact(
-            'rows', 'totals', 'year', 'month', 'salaryGroups', 'salaryGroupId'
-        ));
+        return PfEcrRecord::with('emp:emp_id,epf_member_id')
+            ->whereIn('ecr_id', $latestIds)
+            ->orderBy('emp_id')
+            ->get();
     }
 
     /**
@@ -132,16 +146,20 @@ class StatutoryController extends Controller
             ->whereDate('date_of_relieving', '<', $periodStart)
             ->pluck('emp_id');
 
+        // NOTE: no `epf_emp > 0` filter. An employee with zero payable days
+        // (fully absent) prorates to ₹0 wages and ₹0 PF, but EPFO still
+        // requires the member to be reported — nil contributions with NCP =
+        // the whole month. Filtering on epf_emp made those rows vanish from
+        // the challan list, the Excel/CSV export and the PDF alike.
         $payslips = \App\Models\Payslip::with('emp')
             ->whereIn('run_id', $runIds)
-            ->where('epf_emp', '>', 0)   // only employees with PF deduction
             ->when($groupEmpIds !== null, fn($q) => $q->whereIn('emp_id', $groupEmpIds))
             ->when($relievedEmpIds->isNotEmpty(), fn($q) => $q->whereNotIn('emp_id', $relievedEmpIds))
             ->get();
 
         if ($payslips->isEmpty()) {
             $scope = $salaryGroupId ? " in selected group" : "";
-            return back()->with('status', "No payslips with PF deduction found for {$month}/{$year}{$scope}. Run payroll first.");
+            return back()->with('status', "No payslips found for {$month}/{$year}{$scope}. Run payroll first.");
         }
 
         // Wipe prior ECR rows for this period — narrowed to the group when one
@@ -159,14 +177,17 @@ class StatutoryController extends Controller
         // on the next "Generate ECR" click without having to re-run payroll.
         $pfCalc = app(\App\Services\PFCalculator::class);
 
+        // Per-employee PF toggle (Manage Salary > Config). Same guard the
+        // engine uses (PayrollEngine::computeForEmployee) — non-members must
+        // stay off the ECR even though they now pass the payslip query.
+        $hasPfFlag  = \Illuminate\Support\Facades\Schema::hasColumn('employees', 'pf_applicable_flag');
+        $daysInMonth = (int) \Carbon\Carbon::createFromDate($year, $month, 1)->daysInMonth;
+
         $inserted = 0;
         foreach ($payslips as $p) {
             $emp = $p->emp;
             if (!$emp) continue;
-
-            // NCP days = LOP days (Non-Contributory Period for EPFO reporting).
-            // Float preserved — half-day LOP (e.g. 1.5) stays as 1.5, not 2.
-            $ncpDays = (float) $p->lop_days;
+            if ($hasPfFlag && !(($emp->pf_applicable_flag ?? true) == true)) continue;
 
             // Fresh PF computation on the payslip's wage components
             $pf = $pfCalc->compute([
@@ -176,6 +197,14 @@ class StatutoryController extends Controller
                 'medical' => (float) ($p->medical    ?? 0),
                 'spl'     => (float) ($p->spl_allow  ?? 0),
             ]);
+
+            // NCP days = LOP days (Non-Contributory Period for EPFO reporting).
+            // Float preserved — half-day LOP (e.g. 1.5) stays as 1.5, not 2.
+            // Nil-wage members are the exception: EPFO validates that EPF wage
+            // 0 ⇒ NCP = calendar days in the month. The payslip's lop_days is
+            // measured against the 26-day contractor divisor, so it would say
+            // 26 for May and get the ECR file rejected.
+            $ncpDays = $pf['wage'] <= 0 ? (float) $daysInMonth : (float) $p->lop_days;
 
             \App\Models\PfEcrRecord::updateOrCreate(
                 [
@@ -638,22 +667,7 @@ class StatutoryController extends Controller
         $salaryGroupId = (int) $req->input('salary_group_id', 0);
         $format        = strtolower($req->input('format', 'pdf'));
 
-        // Exclude employees who left before this period.
-        $periodStart    = sprintf('%04d-%02d-01', $year, $month);
-        $relievedEmpIds = \App\Models\Employee::whereNotNull('date_of_relieving')
-            ->whereDate('date_of_relieving', '<', $periodStart)
-            ->pluck('emp_id');
-
-        $rows = PfEcrRecord::where('period_year', $year)
-            ->where('period_month', $month)
-            ->when($cid, fn($q) => $q->where('company_id', $cid))
-            ->when($salaryGroupId, fn($q) => $q->whereIn(
-                'emp_id',
-                \App\Models\Employee::where('salary_group_id', $salaryGroupId)->pluck('emp_id')
-            ))
-            ->when($relievedEmpIds->isNotEmpty(), fn($q) => $q->whereNotIn('emp_id', $relievedEmpIds))
-            ->orderBy('emp_id')
-            ->get();
+        $rows = $this->pfChallanRows($year, $month, $cid, $salaryGroupId);
 
         // Round each row to whole rupees first, then sum — matches the Excel/CSV
         // exporter (which writes integers per row). Sum-then-round drifts vs
