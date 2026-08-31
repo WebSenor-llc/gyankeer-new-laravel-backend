@@ -45,7 +45,9 @@ class EmployeeController extends StubController
             }
             if ($req->filled('dept_id'))  $query->where('dept_id',           $req->dept_id);
             if ($req->filled('emp_type')) $query->whereIn('employee_type',   $this->expandEmpType($req->emp_type));
-            if ($req->filled('status'))   $query->where('employment_status', $req->status);
+            // Default listing shows Active employees only; pass status=all to see everyone.
+            $status = $req->input('status', 'Active');
+            if ($status !== 'all' && $status !== '') $query->where('employment_status', $status);
 
             $format = $req->input('export');
             if (in_array($format, ['csv', 'xls'], true)) {

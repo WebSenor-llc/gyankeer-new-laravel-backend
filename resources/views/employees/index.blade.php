@@ -33,10 +33,11 @@
         <option value="WK" @selected(request('emp_type') === 'WK')>WK — Worker</option>
     </select>
     <select name="status" class="border border-[var(--line)] rounded p-2 text-sm">
-        <option value="">All Status</option>
-        <option value="Active">Active</option>
-        <option value="Notice">On Notice</option>
-        <option value="Exited">Exited</option>
+        <option value="all" @selected(request('status') === 'all')>All Status</option>
+        <option value="Active" @selected(request('status', 'Active') === 'Active')>Active</option>
+        <option value="Notice" @selected(request('status') === 'Notice')>On Notice</option>
+        <option value="Resigned" @selected(request('status') === 'Resigned')>Resigned</option>
+        <option value="Exited" @selected(request('status') === 'Exited')>Exited</option>
     </select>
     <button type="submit" class="tb-btn primary">🔍 Filter</button>
 </form>

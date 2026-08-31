@@ -158,7 +158,8 @@ class ReportController extends Controller
     public function exit(Request $req)
     {
         $cid = (int) session('active_company_id', 0);
-        $q = Employee::where('employment_status', 'Exited');
+        // Match the Exit Employees list — every separation status, not just 'Exited'.
+        $q = Employee::whereIn('employment_status', ['Exited','Resigned','Terminated','Retired','Absconded']);
         if ($cid) $q->where('company_id', $cid);
         $rows = $q->paginate(50);
         return view('reports.exit', compact('rows'));
