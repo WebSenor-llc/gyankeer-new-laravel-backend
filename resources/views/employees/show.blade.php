@@ -162,6 +162,78 @@
                         <tr><th>Last Increment %</th><td>{{ $emp->last_increment_pct ?? '—' }}</td></tr>
                         <tr><th>Last Increment Date</th><td>{{ $emp->last_increment_date ? \Carbon\Carbon::parse($emp->last_increment_date)->format('d-M-Y') : '—' }}</td></tr>
                     </table>
+
+                    @php
+                        $structures = \App\Models\SalaryStructure::where('emp_id', $emp->emp_id)
+                            ->orderByDesc('effective_from')->get();
+                        $events = \App\Models\EmployeeCareerEvent::where('emp_id', $emp->emp_id)
+                            ->whereIn('event_type', ['Increment', 'Increment v2'])
+                            ->orderByDesc('event_date')->limit(20)->get();
+                        $today = today()->toDateString();
+                    @endphp
+
+                    <h3 class="text-sm font-bold mt-6 mb-2 pb-1 border-b border-[var(--line)]">Salary Structure History ({{ $structures->count() }})</h3>
+                    @if($structures->isEmpty())
+                        <p class="text-xs text-slate-500">No structure rows yet. Values above come from the employee master.</p>
+                    @else
+                    <table class="grid-tbl w-full text-xs">
+                        <thead class="bg-slate-100">
+                            <tr>
+                                <th>Version</th><th>Effective</th><th>Status</th>
+                                <th class="text-right">Basic</th><th class="text-right">HRA</th><th class="text-right">DA</th>
+                                <th class="text-right">Conv</th><th class="text-right">Med</th><th class="text-right">Spl</th>
+                                <th class="text-right">Gross</th><th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @foreach($structures as $s)
+                            @php
+                                $gross = (float)($s->basic + $s->hra + $s->da + $s->conveyance + $s->medical + $s->special_allowance);
+                                $isFuture  = $s->effective_from && $s->effective_from > $today;
+                                $isCurrent = $s->effective_from && $s->effective_from <= $today && (!$s->effective_to || $s->effective_to >= $today);
+                            @endphp
+                            <tr style="{{ $isCurrent ? 'background:#ECFDF5' : ($isFuture ? 'background:#FFFBEB' : '') }}">
+                                <td>v{{ $s->version ?? '—' }}</td>
+                                <td>{{ $s->effective_from ? \Carbon\Carbon::parse($s->effective_from)->format('d-M-Y') : '—' }}
+                                    → {{ $s->effective_to ? \Carbon\Carbon::parse($s->effective_to)->format('d-M-Y') : 'open' }}</td>
+                                <td>{{ $s->status ?? '—' }}
+                                    @if($isCurrent)<span style="color:#15803D;font-weight:600"> · Current</span>@endif
+                                    @if($isFuture)<span style="color:#B45309;font-weight:600"> · Scheduled</span>@endif
+                                </td>
+                                <td class="text-right">{{ number_format((float)$s->basic, 0) }}</td>
+                                <td class="text-right">{{ number_format((float)$s->hra, 0) }}</td>
+                                <td class="text-right">{{ number_format((float)$s->da, 0) }}</td>
+                                <td class="text-right">{{ number_format((float)$s->conveyance, 0) }}</td>
+                                <td class="text-right">{{ number_format((float)$s->medical, 0) }}</td>
+                                <td class="text-right">{{ number_format((float)$s->special_allowance, 0) }}</td>
+                                <td class="text-right"><strong>{{ number_format($gross, 0) }}</strong></td>
+                                <td>{{ $s->restructure_reason ?? '—' }}</td>
+                            </tr>
+                        @endforeach
+                        </tbody>
+                    </table>
+                    @endif
+
+                    @if($events->isNotEmpty())
+                        <h3 class="text-sm font-bold mt-6 mb-2 pb-1 border-b border-[var(--line)]">Increment Events</h3>
+                        <table class="grid-tbl w-full text-xs">
+                            <thead class="bg-slate-100">
+                                <tr><th>Date</th><th>Type</th><th class="text-right">Old Gross</th><th class="text-right">New Gross</th><th class="text-right">Hike %</th><th>Remarks</th></tr>
+                            </thead>
+                            <tbody>
+                            @foreach($events as $ev)
+                                <tr>
+                                    <td>{{ \Carbon\Carbon::parse($ev->event_date)->format('d-M-Y') }}</td>
+                                    <td>{{ $ev->event_type }}</td>
+                                    <td class="text-right">{{ number_format((float)$ev->salary_old, 0) }}</td>
+                                    <td class="text-right">{{ number_format((float)$ev->salary_new, 0) }}</td>
+                                    <td class="text-right">{{ $ev->hike_percent }}%</td>
+                                    <td>{{ $ev->remarks }}</td>
+                                </tr>
+                            @endforeach
+                            </tbody>
+                        </table>
+                    @endif
                     @break
 
                 @case('education')

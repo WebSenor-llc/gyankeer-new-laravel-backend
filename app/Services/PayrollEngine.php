@@ -121,35 +121,89 @@ class PayrollEngine
      */
     public function computeForEmployee(Employee $e, SalaryRun $run): Payslip
     {
-        // Prefer the explicit salary structure if one exists; otherwise use
-        // the values stored on the employee master (populated from the
-        // imported Excel) so the computed payslip exactly matches what's
-        // already shown on the Salary tab.
-        $structure = SalaryStructure::where('emp_id', $e->emp_id)
-            ->where('status', 'Active')
-            ->latest('effective_from')
-            ->first();
+        // Period window
+        $periodStart = Carbon::createFromDate($run->period_year, $run->period_month, 1)->startOfDay();
+        $periodEnd   = (clone $periodStart)->endOfMonth();
+        $periodDays  = (int) $periodStart->daysInMonth;
 
-        $basic = (float) ($structure?->basic       ?? $e->current_basic ?? 0);
-        $hra   = (float) ($structure?->hra         ?? $e->current_hra   ?? 0);
-        $da    = (float) ($structure?->da          ?? $e->current_da    ?? 0);
-        $conv  = (float) ($structure?->conveyance  ?? (is_numeric($e->current_conv ?? 0) ? $e->current_conv : 0));
-        $med   = (float) ($structure?->medical     ?? (is_numeric($e->current_med  ?? 0) ? $e->current_med  : 0));
-        $spl   = (float) ($structure?->special_allowance ?? $e->current_spl ?? 0);
+        // Fetch every Active structure whose [effective_from, effective_to?? +∞]
+        // overlaps this period. When two overlap (mid-month hike) we weight each
+        // component by the number of days it was in effect.
+        $structures = SalaryStructure::where('emp_id', $e->emp_id)
+            ->where('status', 'Active')
+            ->where(function ($q) use ($periodEnd) {
+                $q->whereNull('effective_from')->orWhere('effective_from', '<=', $periodEnd->toDateString());
+            })
+            ->where(function ($q) use ($periodStart) {
+                $q->whereNull('effective_to')->orWhere('effective_to', '>=', $periodStart->toDateString());
+            })
+            ->orderBy('effective_from')
+            ->get();
+
+        $components = ['basic' => 0.0, 'hra' => 0.0, 'da' => 0.0, 'conv' => 0.0, 'med' => 0.0, 'spl' => 0.0];
+
+        if ($structures->count() === 1) {
+            $s = $structures->first();
+            $components['basic'] = (float) $s->basic;
+            $components['hra']   = (float) $s->hra;
+            $components['da']    = (float) $s->da;
+            $components['conv']  = (float) $s->conveyance;
+            $components['med']   = (float) $s->medical;
+            $components['spl']   = (float) $s->special_allowance;
+        } elseif ($structures->count() > 1) {
+            $psDate = $periodStart->copy()->startOfDay();
+            $peDate = $periodEnd->copy()->startOfDay();
+            foreach ($structures as $s) {
+                $sFrom = $s->effective_from ? Carbon::parse($s->effective_from)->startOfDay() : $psDate;
+                $sTo   = $s->effective_to   ? Carbon::parse($s->effective_to)->startOfDay()   : $peDate;
+                $winStart = $sFrom->greaterThan($psDate) ? $sFrom : $psDate;
+                $winEnd   = $sTo->lessThan($peDate)      ? $sTo   : $peDate;
+                $days = (int) $winStart->diffInDays($winEnd) + 1;
+                if ($days <= 0) continue;
+                $w = $days / $periodDays;
+                $components['basic'] += ((float) $s->basic)             * $w;
+                $components['hra']   += ((float) $s->hra)               * $w;
+                $components['da']    += ((float) $s->da)                * $w;
+                $components['conv']  += ((float) $s->conveyance)        * $w;
+                $components['med']   += ((float) $s->medical)           * $w;
+                $components['spl']   += ((float) $s->special_allowance) * $w;
+            }
+        } else {
+            // Legacy employees with no structure row — fall back to employee master.
+            $components['basic'] = (float) ($e->current_basic ?? 0);
+            $components['hra']   = (float) ($e->current_hra   ?? 0);
+            $components['da']    = (float) ($e->current_da    ?? 0);
+            $components['conv']  = (float) (is_numeric($e->current_conv ?? 0) ? $e->current_conv : 0);
+            $components['med']   = (float) (is_numeric($e->current_med  ?? 0) ? $e->current_med  : 0);
+            $components['spl']   = (float) ($e->current_spl ?? 0);
+        }
+
+        $basic = $components['basic'];
+        $hra   = $components['hra'];
+        $da    = $components['da'];
+        $conv  = $components['conv'];
+        $med   = $components['med'];
+        $spl   = $components['spl'];
 
         // If gross is set but components don't add up (Excel imports often had
         // House Rent / Education on top), backfill the residual into spl_allow.
+        // Only apply the current_gross fallback when we used the legacy current_*
+        // path (no structures) — for structure-driven runs the sum is authoritative.
         $sum   = $basic + $hra + $da + $conv + $med + $spl;
-        $gross = (float) ($e->current_gross ?? $sum);
-        if ($gross > 0 && $sum < $gross) {
-            $spl += ($gross - $sum);
-        } elseif ($gross <= 0) {
+        if ($structures->isEmpty()) {
+            $gross = (float) ($e->current_gross ?? $sum);
+            if ($gross > 0 && $sum < $gross) {
+                $spl += ($gross - $sum);
+            } elseif ($gross <= 0) {
+                $gross = $sum;
+            }
+        } else {
             $gross = $sum;
         }
 
         // === Attendance-driven proration ===
         // Total days in this period (28/29/30/31)
-        $totalDays = (int) Carbon::createFromDate($run->period_year, $run->period_month, 1)->daysInMonth;
+        $totalDays = $periodDays;
 
         // === Final Settlement (FNF) — exited employees ===
         // If date_of_relieving falls inside this month, cap the period to that
@@ -158,8 +212,6 @@ class PayrollEngine
         $isFinalSettlement = false;
         if (\Illuminate\Support\Facades\Schema::hasColumn('employees', 'date_of_relieving') && !empty($e->date_of_relieving)) {
             $relieve = Carbon::parse($e->date_of_relieving);
-            $periodStart = Carbon::createFromDate($run->period_year, $run->period_month, 1)->startOfDay();
-            $periodEnd   = (clone $periodStart)->endOfMonth();
             if ($relieve->lt($periodStart)) {
                 // Already left before this month — should not be on payroll.
                 throw new \RuntimeException("Employee {$e->emp_id} relieved on {$relieve->toDateString()}, before period start.");

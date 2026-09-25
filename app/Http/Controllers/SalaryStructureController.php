@@ -6,8 +6,12 @@ use App\Models\Bank;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
+use App\Models\EmployeeCareerEvent;
 use App\Models\SalaryGroup;
+use App\Models\SalaryStructure;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 /**
  * SUGAM HR-style "Manage Salary" — listing of all employees with their salary
@@ -194,6 +198,9 @@ class SalaryStructureController extends Controller
             'conv_pct'                => 'nullable|numeric|min:0|max:100',
             'medical_pct'            => 'nullable|numeric|min:0|max:100',
             'education_pct'          => 'nullable|numeric|min:0|max:100',
+
+            'effective_from'         => 'nullable|date',
+            'restructure_reason'     => 'nullable|string|max:255',
         ]);
 
         $emp = Employee::where('emp_id', $empId)->firstOrFail();
@@ -266,14 +273,113 @@ class SalaryStructureController extends Controller
             }
         }
 
-        $emp->update($payload);
+        $effectiveFrom = Carbon::parse($req->input('effective_from') ?: today()->toDateString())->startOfDay();
+        $today         = today()->startOfDay();
+        $isFutureDated = $effectiveFrom->gt($today);
+
+        // Salary components changed? Compare against latest Active structure or current_* fallback.
+        $latest = SalaryStructure::where('emp_id', $emp->emp_id)
+            ->where('status', 'Active')
+            ->orderByDesc('effective_from')
+            ->first();
+
+        $oldBasic = (float) ($latest?->basic ?? $emp->current_basic ?? 0);
+        $oldHra   = (float) ($latest?->hra   ?? $emp->current_hra   ?? 0);
+        $oldDa    = (float) ($latest?->da    ?? $emp->current_da    ?? 0);
+        $oldConv  = (float) ($latest?->conveyance ?? $emp->current_conv ?? 0);
+        $oldMed   = (float) ($latest?->medical    ?? $emp->current_med  ?? 0);
+        $oldSpl   = (float) ($latest?->special_allowance ?? $emp->current_spl ?? 0);
+        $oldGross = $oldBasic + $oldHra + $oldDa + $oldConv + $oldMed + $oldSpl;
+
+        $salaryChanged = abs($oldBasic - $basic) > 0.5
+            || abs($oldHra - $hra) > 0.5
+            || abs($oldDa  - $da)  > 0.5
+            || abs($oldConv - $conv) > 0.5
+            || abs($oldMed  - $med)  > 0.5
+            || abs($oldSpl  - $extras) > 0.5;
+
+        DB::transaction(function () use (
+            $emp, $payload, $salaryChanged, $isFutureDated, $effectiveFrom,
+            $basic, $da, $hra, $conv, $med, $extras, $gross, $oldGross, $req
+        ) {
+            // Non-salary fields (flags, IDs, bank) — always applied immediately.
+            $flagPayload = collect($payload)->except([
+                'current_basic','current_da','current_hra','current_conv',
+                'current_med','current_spl','current_gross',
+            ])->all();
+            $emp->update($flagPayload);
+
+            if (!$salaryChanged) return;
+
+            // Close prior open Active structures so effective_to = new.effective_from - 1
+            SalaryStructure::where('emp_id', $emp->emp_id)
+                ->where('status', 'Active')
+                ->whereNull('effective_to')
+                ->update(['effective_to' => $effectiveFrom->copy()->subDay()->toDateString()]);
+
+            $nextVersion = (int) SalaryStructure::where('emp_id', $emp->emp_id)->max('version') + 1;
+
+            SalaryStructure::create([
+                'emp_id'            => $emp->emp_id,
+                'salary_group_id'   => $req->salary_group_id ?: $emp->salary_group_id,
+                'version'           => $nextVersion,
+                'effective_from'    => $effectiveFrom->toDateString(),
+                'effective_to'      => null,
+                'status'            => 'Active',
+                'basic'             => $basic,
+                'hra'               => $hra,
+                'da'                => $da,
+                'conveyance'        => $conv,
+                'medical'           => $med,
+                'special_allowance' => $extras,
+                'gross_monthly'     => $gross,
+                'gross_annual'      => $gross * 12,
+                'ctc_monthly'       => $gross,
+                'ctc_annual'        => $gross * 12,
+                'restructure_reason'=> $req->input('restructure_reason'),
+                'created_by'        => auth()->user()->name ?? 'system',
+            ]);
+
+            if (!$isFutureDated) {
+                // Mirror to employees.current_* and record career event now.
+                $emp->update([
+                    'current_basic'            => $basic,
+                    'current_da'               => $da,
+                    'current_hra'              => $hra,
+                    'current_conv'             => $conv,
+                    'current_med'              => $med,
+                    'current_spl'              => $extras,
+                    'current_gross'            => $gross,
+                    'last_increment_date'      => $effectiveFrom->toDateString(),
+                    'last_increment_pct'       => $oldGross > 0 ? round(($gross - $oldGross) / $oldGross * 100, 2) : 0,
+                    'last_increment_old_gross' => $oldGross,
+                    'last_increment_new_gross' => $gross,
+                ]);
+
+                EmployeeCareerEvent::create([
+                    'emp_id'       => $emp->emp_id,
+                    'event_date'   => $effectiveFrom->toDateString(),
+                    'event_type'   => 'Increment',
+                    'old_value'    => sprintf('Gross %.2f', $oldGross),
+                    'new_value'    => sprintf('Gross %.2f', $gross),
+                    'salary_old'   => $oldGross,
+                    'salary_new'   => $gross,
+                    'hike_percent' => $oldGross > 0 ? round(($gross - $oldGross) / $oldGross * 100, 2) : 0,
+                    'remarks'      => $req->input('restructure_reason') ?: 'Salary update via Manage Salary',
+                    'created_by'   => auth()->user()->name ?? 'system',
+                ]);
+            }
+        });
 
         if (!empty($missingCols) && in_array('pf_applicable_flag', $missingCols)) {
             return redirect()->route('manage-salary.config', $emp->emp_id)
                 ->with('status', '⚠️ Saved partial — but the salary-config columns (pf_applicable_flag, esi_applicable_flag, …) DO NOT EXIST in the employees table yet. Run: php artisan migrate. The PF/ESI checkbox states will not persist until you do.');
         }
 
-        return redirect()->route('manage-salary.config', $emp->emp_id)
-            ->with('status', "Saved salary configuration for {$emp->full_name}. Gross = ₹" . number_format($gross, 2));
+        $msg = $isFutureDated
+            ? "Scheduled salary update for {$emp->full_name} effective {$effectiveFrom->toDateString()}. Gross = ₹" . number_format($gross, 2)
+            : "Saved salary configuration for {$emp->full_name}. Gross = ₹" . number_format($gross, 2);
+
+        return redirect()->route('manage-salary.config', $emp->emp_id)->with('status', $msg);
     }
 }

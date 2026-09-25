@@ -310,6 +310,19 @@
                 </div>
             </div>
 
+            {{-- Increment metadata --}}
+            <div class="grid grid-cols-3 gap-3 mt-5 pt-3 border-t border-[var(--line)] bg-amber-50 p-3 rounded">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Effective From :</label>
+                    <input type="date" name="effective_from" value="{{ old('effective_from', date('Y-m-d')) }}" class="block w-full border border-[var(--line)] rounded p-2 text-sm">
+                    <p class="text-[10px] text-slate-500 mt-1">Future dates activate automatically on that day.</p>
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-semibold text-slate-700 mb-1">Reason / Remarks :</label>
+                    <input type="text" name="restructure_reason" value="{{ old('restructure_reason') }}" placeholder="e.g. Annual increment FY 2026-27" class="block w-full border border-[var(--line)] rounded p-2 text-sm">
+                </div>
+            </div>
+
             {{-- Action buttons --}}
             <div class="flex justify-start gap-2 pt-3 border-t border-[var(--line)] mt-4">
                 <button type="submit" class="tb-btn primary" style="background:#16A34A;border-color:#15803D">💾 Save</button>
