@@ -43,11 +43,11 @@ return new class extends Migration {
             });
         }
 
-        if (Schema::hasTable('employees') && !Schema::hasColumn('employees', 'iw_flag')) {
-            Schema::table('employees', function (Blueprint $t) {
-                $t->boolean('iw_flag')->default(false);
-            });
-        }
+        // NOTE: employees.iw_flag deliberately NOT added here — the employees
+        // table has hit MySQL's 8126-byte row-size limit (too many legacy
+        // varchar columns). PayrollEngine::computeForEmployee() falls back to
+        // iw_flag=false whenever the column is absent, so International Worker
+        // support stays dormant until a dedicated sidecar table is introduced.
     }
 
     public function down(): void
