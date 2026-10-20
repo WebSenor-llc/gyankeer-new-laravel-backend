@@ -58,6 +58,14 @@ class RebuildPayroll extends Command
             return self::SUCCESS;
         }
 
+        $cutover   = (string) config('hreasy.pf.cutover_period', '2026-10');
+        $runPeriod = sprintf('%04d-%02d', $year, $month);
+        if ($runPeriod < $cutover && !$this->option('force') &&
+            !$this->confirm("Period {$runPeriod} predates the EPFO 2026 cutover ({$cutover}). Continue?", true)) {
+            $this->info('Aborted.');
+            return self::SUCCESS;
+        }
+
         // ─────────────────────────────────────────────────────────────────
         // Step 1: Wipe payroll output
         // ─────────────────────────────────────────────────────────────────
@@ -186,6 +194,8 @@ class RebuildPayroll extends Command
             'calc_completed_at'        => now(),
             'status'                   => 'Computed',
         ]);
+
+        $engine->finaliseStatutoryTotals($run);
 
         $generated = $employees->count() - $skipped;
         $this->newLine();

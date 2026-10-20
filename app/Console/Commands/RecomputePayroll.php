@@ -35,6 +35,13 @@ class RecomputePayroll extends Command
 
         $this->info("Recomputing run #{$run->run_id} — {$run->run_code} (Company {$run->company_id}, {$run->period_month}/{$run->period_year}, status {$run->status})");
 
+        $cutover = (string) config('hreasy.pf.cutover_period', '2026-10');
+        $runPeriod = sprintf('%04d-%02d', (int) $run->period_year, (int) $run->period_month);
+        if ($runPeriod < $cutover && !$this->confirm("Period {$runPeriod} predates the EPFO 2026 cutover ({$cutover}). Historical rates will apply from statutory_slabs. Continue?", true)) {
+            $this->info('Aborted.');
+            return self::SUCCESS;
+        }
+
         // Wipe existing payslips
         $deleted = Payslip::where('run_id', $run->run_id)->delete();
         $this->line("  Wiped {$deleted} existing payslips");
@@ -108,6 +115,8 @@ class RecomputePayroll extends Command
             'calc_completed_at'        => now(),
             'status'                   => 'Computed',
         ]);
+
+        $engine->finaliseStatutoryTotals($run);
 
         $generated = $employees->count() - $skipped;
         $this->info("Done. {$generated} payslips generated, {$skipped} skipped.");

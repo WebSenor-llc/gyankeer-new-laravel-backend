@@ -49,6 +49,15 @@ class StatutorySlabSeeder extends Seeder
             );
         }
 
+        // ---------- EPFO 2026 — period-aware EPF wage ceiling ----------
+        // Pre-cutover: ₹15,000 (01-Apr-2024 → 30-Sep-2026)
+        // Post-cutover: ₹25,000 (01-Oct-2026 → open)
+        // Requires 2026_10_20_000001 migration (effective_from / effective_to).
+        if (\Illuminate\Support\Facades\Schema::hasColumn('statutory_slabs', 'effective_from')) {
+            $this->seedEffectiveRate('epf.wage_cap', '2024-04-01', '2026-09-30', 15000, 'EPF Wage Cap — pre-2026 EPFO (₹15,000)');
+            $this->seedEffectiveRate('epf.wage_cap', '2026-10-01', null,         25000, 'EPF Wage Cap — EPFO 2026 (₹25,000)');
+        }
+
         // ---------- PT slabs (state-wise) ----------
         foreach (config('hreasy.pt', []) as $state => $slabs) {
             if (empty($slabs)) continue;
@@ -97,5 +106,32 @@ class StatutorySlabSeeder extends Seeder
 
         $count = StatutorySlab::count();
         $this->command->info("Seeded {$count} statutory_slab rows (rate / pt / lwf / tds) for FY 2025-26.");
+    }
+
+    /**
+     * Upsert a date-ranged rate row (idempotent on category+key+effective_from).
+     */
+    private function seedEffectiveRate(string $key, string $from, ?string $to, float $value, string $label): void
+    {
+        $fy = (int) substr($from, 0, 4); // storage keeps fy_start_year for backward compat
+        $row = StatutorySlab::where('category', 'rate')
+            ->where('key', $key)
+            ->where('effective_from', $from)
+            ->first();
+        $attrs = [
+            'category'       => 'rate',
+            'key'            => $key,
+            'fy_start_year'  => $fy,
+            'effective_from' => $from,
+            'effective_to'   => $to,
+            'value_decimal'  => $value,
+            'label'          => $label,
+            'active_flag'    => true,
+        ];
+        if ($row) {
+            $row->update($attrs);
+        } else {
+            StatutorySlab::create($attrs);
+        }
     }
 }
