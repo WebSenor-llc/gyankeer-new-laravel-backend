@@ -23,21 +23,27 @@ class SalaryComponentSeeder extends Seeder
             ['EARN-BON','Statutory Bonus',        'Earning','Annual','BONUS_ACT',8.33,0,1,1,1,'',0,0,0,0,0,1,1,'5112-Bonus',12],
 
             // Deductions
-            ['DED-EPF','EPF (Employee 12%)',      'Deduction','Percentage','12%*MIN(BASIC+DA,15000)',12,0,0,0,0,'',0,0,0,0,0,1,1,'2120-EPF',20],
+            ['DED-EPF','EPF (Employee 12%)',      'Deduction','Percentage','12%*MIN(BASIC+DA,{PF_CAP})',12,0,0,0,0,'',0,0,0,0,0,1,1,'2120-EPF',20],
             ['DED-ESI','ESI (Employee 0.75%)',    'Deduction','Percentage','0.75%*GROSS_IF_LE_21K',0.75,0,0,0,0,'',0,0,0,0,0,1,1,'2125-ESI',22],
             ['DED-PT','Profession Tax',           'Deduction','Slab','STATE_SLAB',0,0,0,0,0,'',0,0,0,0,0,1,1,'2126-PT',23],
             ['DED-LWF','LWF',                     'Deduction','Fixed','STATE_FLAT',0,25,0,0,0,'',0,0,0,0,0,1,1,'2127-LWF',24],
             ['DED-TDS','TDS',                     'Deduction','Slab','ANNUAL/12',0,0,0,0,0,'',0,0,0,0,0,1,1,'2130-TDS',25],
 
             // Employer
-            ['ER-EPF','Employer EPF (3.67%)',     'Employer','Percentage','3.67%*MIN(BASIC+DA,15000)',3.67,0,0,0,0,'',0,0,0,0,0,0,1,'2120-EPF',30],
-            ['ER-EPS','EPS (8.33%)',              'Employer','Percentage','8.33%*MIN(BASIC+DA,15000)',8.33,0,0,0,0,'',0,0,0,0,0,0,1,'2122-EPS',31],
-            ['ER-EDLI','EDLI (0.5%)',             'Employer','Percentage','0.5%*MIN(BASIC+DA,15000)',0.5,0,0,0,0,'',0,0,0,0,0,0,1,'2123-EDLI',32],
-            ['ER-ADM','EPF Admin (0.5%)',         'Employer','Percentage','0.5%*MIN(BASIC+DA,15000)',0.5,0,0,0,0,'',0,0,0,0,0,0,1,'2124-Admin',33],
+            ['ER-EPF','Employer EPF (3.67%)',     'Employer','Percentage','3.67%*MIN(BASIC+DA,{PF_CAP})',3.67,0,0,0,0,'',0,0,0,0,0,0,1,'2120-EPF',30],
+            ['ER-EPS','EPS (8.33%)',              'Employer','Percentage','8.33%*MIN(BASIC+DA,{PF_CAP})',8.33,0,0,0,0,'',0,0,0,0,0,0,1,'2122-EPS',31],
+            ['ER-EDLI','EDLI (0.5%)',             'Employer','Percentage','0.5%*MIN(BASIC+DA,{PF_CAP})',0.5,0,0,0,0,'',0,0,0,0,0,0,1,'2123-EDLI',32],
+            ['ER-ADM','EPF Admin (0.5%)',         'Employer','Percentage','0.5%*MIN(BASIC+DA,{PF_CAP})',0.5,0,0,0,0,'',0,0,0,0,0,0,1,'2124-Admin',33],
             ['ER-ESI','Employer ESI (3.25%)',     'Employer','Percentage','3.25%*GROSS_IF_LE_21K',3.25,0,0,0,0,'',0,0,0,0,0,0,1,'2125-ESI',34],
             ['ER-GRAT','Gratuity Provision',      'Employer','Percentage','4.81%*(BASIC+DA)',4.81,0,0,0,0,'',0,0,0,0,0,0,1,'2310-Grat',35],
             ['ER-LWF','LWF Employer',             'Employer','Fixed','SEMI_ANNUAL',0,75,0,0,0,'',0,0,0,0,0,0,1,'2127-LWF',36],
         ];
+
+        $pfCap = (int) config('hreasy.pf.wage_cap', 25000);
+        foreach ($components as &$c) {
+            $c[4] = str_replace('{PF_CAP}', (string) $pfCap, $c[4]);
+        }
+        unset($c);
 
         foreach ($components as $c) {
             SalaryComponent::create([

@@ -34,10 +34,17 @@ return [
         'eps_rate'           => env('HREASY_EPS_RATE', 8.33),          // %
         'edli_rate'          => env('HREASY_EDLI_RATE', 0.5),          // %
         'admin_rate'         => env('HREASY_PF_ADMIN_RATE', 0.5),      // %
-        'wage_cap'           => env('HREASY_PF_WAGE_CAP', 15000),
-        'eps_wage_cap'       => 15000,
-        'edli_wage_cap'      => 15000,
+        'wage_cap'           => env('HREASY_PF_WAGE_CAP', 25000),
+        'eps_wage_cap'       => env('HREASY_EPS_WAGE_CAP', 25000),
+        'edli_wage_cap'      => env('HREASY_EDLI_WAGE_CAP', 25000),
         'edli_max_benefit'   => 700000,
+        // Exempted-establishment inspection floors (EPFO 2026)
+        'epf_inspection_rate'   => env('HREASY_EPF_INSPECTION_RATE', 0.18),   // %
+        'epf_inspection_floor'  => env('HREASY_EPF_INSPECTION_FLOOR', 8750),  // ₹/month
+        'edli_inspection_rate'  => env('HREASY_EDLI_INSPECTION_RATE', 0.005), // %
+        'edli_inspection_floor' => env('HREASY_EDLI_INSPECTION_FLOOR', 1250), // ₹/month
+        'admin_floor'           => env('HREASY_PF_ADMIN_FLOOR', 500),         // ₹/month company-level
+        'cutover_period'        => env('HREASY_PF_CEILING_CUTOVER', '2026-10'),
     ],
 
     /*

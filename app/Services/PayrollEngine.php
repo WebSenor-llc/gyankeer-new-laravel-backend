@@ -112,6 +112,8 @@ class PayrollEngine
                 'calc_completed_at'          => now(),
             ]);
 
+            $this->finaliseStatutoryTotals($run);
+
             return $run->fresh();
         });
     }
@@ -384,9 +386,20 @@ class PayrollEngine
         $lwfApplicable = !\Illuminate\Support\Facades\Schema::hasColumn('employees', 'lwf_apply_flag')
                          || ($e->lwf_apply_flag ?? true) == true;
 
+        // EPFO 2026: ceiling resolved per-period from statutory_slabs. Prorate
+        // the cap for mid-month joiners/exits via (payableDays / totalDays).
+        $period = sprintf('%04d-%02d', (int) $run->period_year, (int) $run->period_month);
+        $iwFlag = \Illuminate\Support\Facades\Schema::hasColumn('employees', 'iw_flag')
+                  && ($e->iw_flag ?? false) == true;
         $pf = $pfApplicable
-            ? $this->pf->compute($components)
-            : ['wage' => 0, 'employee' => 0, 'employer' => 0, 'eps' => 0, 'edli' => 0, 'admin' => 0];
+            ? $this->pf->compute(
+                $components,
+                $period,
+                $iwFlag,
+                (int) round((float) $payableDays),
+                (int) $totalDays
+            )
+            : ['wage' => 0, 'employee' => 0, 'employer' => 0, 'eps' => 0, 'edli' => 0, 'admin' => 0, 'cap_snapshot' => 0];
         $esi = $esiApplicable
             ? $this->esi->compute($components)
             : ['eligible' => false, 'wage' => 0, 'employee' => 0, 'employer' => 0];
@@ -490,6 +503,12 @@ class PayrollEngine
         if (\Illuminate\Support\Facades\Schema::hasColumn('payslips', 'vpf')) {
             $payslipPayload['vpf'] = $vpfAmount;
         }
+        // Immutable per-slip cap snapshot — ESS payslip renders this value, not
+        // the current config/slab. Guarantees old slips redisplay with the cap
+        // that was in force when the run was computed (EPFO 2026 cutover).
+        if (\Illuminate\Support\Facades\Schema::hasColumn('payslips', 'pf_wage_cap_snapshot')) {
+            $payslipPayload['pf_wage_cap_snapshot'] = $pf['cap_snapshot'] ?? 0;
+        }
         $payslip = Payslip::create($payslipPayload);
 
         // Backfill manual_deductions row with the new payslip_id (so future
@@ -510,6 +529,56 @@ class PayrollEngine
         }
 
         return $payslip;
+    }
+
+    /**
+     * EPFO 2026 — company-level finalisation after per-employee totals.
+     *
+     * 1) PF admin: enforce ₹500/month floor on aggregated admin, store the
+     *    top-up on salary_runs.pf_admin_topup (ECR adds this on top).
+     * 2) If company is an exempted trust, compute monthly inspection charges:
+     *      EPF  : max(0.18% × total PF wages, ₹8750)
+     *      EDLI : max(0.005% × total PF wages, ₹1250)
+     *    Written to salary_runs.pf_inspection_epf / pf_inspection_edli.
+     *
+     * Called from run()/recompute/rebuild AFTER totals are aggregated.
+     */
+    public function finaliseStatutoryTotals(SalaryRun $run): void
+    {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('salary_runs', 'pf_admin_topup')) {
+            return;
+        }
+
+        $totalAdmin = (float) ($run->total_admin ?? 0);
+        $adminFloor = (float) config('hreasy.pf.admin_floor', 500);
+        $topup      = max(0.0, round($adminFloor - $totalAdmin, 2));
+
+        $update = ['pf_admin_topup' => $topup];
+
+        $isExempted = \Illuminate\Support\Facades\Schema::hasColumn('companies', 'exempted_trust_flag')
+            && (bool) \App\Models\Company::where('company_id', $run->company_id)
+                ->value('exempted_trust_flag');
+
+        if ($isExempted) {
+            $totalPfWage = (float) \App\Models\Payslip::where('run_id', $run->run_id)
+                ->sum(\Illuminate\Support\Facades\DB::raw('COALESCE(pf_wage_cap_snapshot, 0)'));
+            // When snapshot absent (legacy), derive from employee EPF (÷ 12%)
+            if ($totalPfWage <= 0) {
+                $totalPfWage = (float) $run->total_pf_emp / (config('hreasy.pf.employee_rate') / 100);
+            }
+            $epfInsp = max(
+                round($totalPfWage * (float) config('hreasy.pf.epf_inspection_rate', 0.18) / 100, 2),
+                (float) config('hreasy.pf.epf_inspection_floor', 8750)
+            );
+            $edliInsp = max(
+                round($totalPfWage * (float) config('hreasy.pf.edli_inspection_rate', 0.005) / 100, 2),
+                (float) config('hreasy.pf.edli_inspection_floor', 1250)
+            );
+            $update['pf_inspection_epf']  = $epfInsp;
+            $update['pf_inspection_edli'] = $edliInsp;
+        }
+
+        $run->update($update);
     }
 
     /**

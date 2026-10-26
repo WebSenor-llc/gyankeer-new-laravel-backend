@@ -7,8 +7,11 @@ $med   = is_numeric($emp->current_med ?? 0) ? $emp->current_med : 0;
 $spl   = $emp->current_spl ?? 0;
 $gross = $emp->current_gross ?? ($basic + $hra + $da + $conv + $med + $spl);
 
-// Indian statutory calc (sample)
-$pfWage = min($basic + $da, 15000);
+// Indian statutory calc (sample). This file is a master-data preview — real
+// payslips must read from $payslip->pf_wage_cap_snapshot so historical slips
+// never redisplay with a newer ceiling.
+$pfCap  = (int) config('hreasy.pf.wage_cap', 25000);
+$pfWage = min($basic + $da, $pfCap);
 $pf     = round($pfWage * 0.12, 2);
 $esi    = $gross <= 21000 ? round($gross * 0.0075, 2) : 0;
 $pt     = 200; // typical Maharashtra/Karnataka monthly
