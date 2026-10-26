@@ -31,11 +31,11 @@ class ResyncFormulas extends Command
         $cap    = (int) $cap;
 
         $targets = [
-            'DED-EPF' => '12%*MIN(BASIC+DA,%d)',
-            'ER-EPF'  => '3.67%*MIN(BASIC+DA,%d)',
-            'ER-EPS'  => '8.33%*MIN(BASIC+DA,%d)',
-            'ER-EDLI' => '0.5%*MIN(BASIC+DA,%d)',
-            'ER-ADM'  => '0.5%*MIN(BASIC+DA,%d)',
+            'DED-EPF' => '12%%*MIN(BASIC+DA,%d)',
+            'ER-EPF'  => '3.67%%*MIN(BASIC+DA,%d)',
+            'ER-EPS'  => '8.33%%*MIN(BASIC+DA,%d)',
+            'ER-EDLI' => '0.5%%*MIN(BASIC+DA,%d)',
+            'ER-ADM'  => '0.5%%*MIN(BASIC+DA,%d)',
         ];
 
         $this->info("Resyncing formulas for period {$period} using cap ₹{$cap}");
