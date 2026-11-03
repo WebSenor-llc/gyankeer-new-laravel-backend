@@ -284,7 +284,7 @@ class SalaryRunController extends Controller
             $ph     = $att ? (float)($att->ph_count ?? 0) : 0;
             $abs    = $att ? (float)$att->a_count : 0;
             $wo     = $att ? (float)$att->w_count : 0;
-            $pDays  = $p->payable_days ?? \Carbon\Carbon::createFromDate($year, $month, 1)->daysInMonth;
+            $pDays  = $p->payable_days ?? 0;
 
             // Read manual deductions for the granular SUGAM deduction columns
             $manual = null;
