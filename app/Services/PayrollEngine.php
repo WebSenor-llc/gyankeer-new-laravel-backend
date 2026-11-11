@@ -387,17 +387,38 @@ class PayrollEngine
                          || ($e->lwf_apply_flag ?? true) == true;
 
         // EPFO 2026: ceiling resolved per-period from statutory_slabs. Prorate
-        // the cap for mid-month joiners/exits via (payableDays / totalDays).
+        // the cap ONLY for mid-month joiners/exits — NOT for LOP. Per EPFO
+        // practice, LOP reduces earned EPF wage but the ceiling stays at full
+        // monthly value; NCP days are reported separately in the ECR.
         $period = sprintf('%04d-%02d', (int) $run->period_year, (int) $run->period_month);
         $iwFlag = \Illuminate\Support\Facades\Schema::hasColumn('employees', 'iw_flag')
                   && ($e->iw_flag ?? false) == true;
+        // Mid-month DOJ check: joined inside this period window.
+        $isMidMonthJoiner = false;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('employees', 'date_of_joining') && !empty($e->date_of_joining)) {
+            $doj = Carbon::parse($e->date_of_joining);
+            if ($doj->gte($periodStart) && $doj->lte($periodEnd) && $doj->day > 1) {
+                $isMidMonthJoiner = true;
+            }
+        }
+        // Worked days for cap proration: full month unless FNF/mid-month join.
+        $pfWorkedDays = 0;
+        $pfMonthDays  = 0;
+        if ($isFinalSettlement) {
+            $pfWorkedDays = (int) $totalDays;
+            $pfMonthDays  = (int) $periodDays;
+        } elseif ($isMidMonthJoiner) {
+            $doj = Carbon::parse($e->date_of_joining);
+            $pfWorkedDays = (int) ($periodDays - $doj->day + 1);
+            $pfMonthDays  = (int) $periodDays;
+        }
         $pf = $pfApplicable
             ? $this->pf->compute(
                 $components,
                 $period,
                 $iwFlag,
-                (int) round((float) $payableDays),
-                (int) $totalDays
+                $pfWorkedDays,
+                $pfMonthDays
             )
             : ['wage' => 0, 'employee' => 0, 'employer' => 0, 'eps' => 0, 'edli' => 0, 'admin' => 0, 'cap_snapshot' => 0];
         $esi = $esiApplicable
