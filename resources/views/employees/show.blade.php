@@ -82,7 +82,13 @@
                 @case('profile')
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Full Name</div><div>{{ $emp->full_name ?? '—' }}</div></div>
-                        <div><div class="text-[11px] text-slate-500 uppercase mb-1">Father's Name</div><div>{{ $emp->fathers_name ?? '—' }}</div></div>
+                        @php
+                            $relLabel = $emp->relation_prefix === 'W/O' ? "Husband's Name"
+                                      : ($emp->relation_prefix === 'D/O' ? "Father's Name"
+                                      : "Father's / Husband's Name");
+                            $relVal = $emp->fathers_name ?: ($emp->relative_name ?: ($emp->spouse_name ?: '—'));
+                        @endphp
+                        <div><div class="text-[11px] text-slate-500 uppercase mb-1">{{ $relLabel }}</div><div>{{ $relVal }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Mother's Name</div><div>{{ $emp->mothers_name ?? '—' }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">DOB</div><div>{{ $emp->dob ? \Carbon\Carbon::parse($emp->dob)->format('d-M-Y') : '—' }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Gender</div><div>{{ $emp->gender ?? '—' }}</div></div>
