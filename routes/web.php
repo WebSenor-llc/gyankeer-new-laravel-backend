@@ -73,6 +73,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{empId}/education',  'education') ->name('education');
         Route::get('/{empId}/employment', 'employment')->name('employment');
         Route::get('/{empId}/statutory',  'statutory') ->name('statutory');
+        Route::post('/{empId}/statutory/applicability', 'updateStatutoryApplicability')->name('statutory.applicability');
         Route::get('/{empId}/bank',       'bank')      ->name('bank');
         Route::get('/{empId}/documents',  'documents') ->name('documents');
         Route::get('/{empId}/family',     'family')    ->name('family');

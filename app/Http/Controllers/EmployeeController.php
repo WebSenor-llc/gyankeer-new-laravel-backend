@@ -296,7 +296,87 @@ class EmployeeController extends StubController
         $emp = Employee::with(['company', 'department', 'designation', 'salary_group', 'bank', 'shift'])
             ->where('emp_id', $empId)
             ->firstOrFail();
-        return view('employees.show', ['emp' => $emp, 'tab' => $tab]);
+
+        $data = ['emp' => $emp, 'tab' => $tab];
+        if ($tab === 'statutory') {
+            $data += $this->statutoryApplicabilityData($emp);
+        }
+        return view('employees.show', $data);
+    }
+
+    /** PF / EPS / ESI status + history for the Statutory tab. */
+    private function statutoryApplicabilityData(Employee $emp): array
+    {
+        $svc    = new \App\Services\StatutoryApplicability();
+        $period = now()->format('Y-m');
+        $status = [];
+        foreach (\App\Models\EmployeeStatutoryChange::SCHEMES as $scheme) {
+            $status[$scheme] = $svc->status($emp, $scheme, $period);
+        }
+
+        $history = \Illuminate\Support\Facades\Schema::hasTable('employee_statutory_changes')
+            ? $emp->statutoryChanges()->with('changedBy')->orderByDesc('effective_from')->orderByDesc('id')->get()
+            : collect();
+
+        // Upcoming (future-dated) changes, shown next to the badge.
+        $upcoming = $history->filter(fn($h) => $h->effective_from->format('Y-m') > $period)
+            ->groupBy('scheme')->map(fn($g) => $g->sortBy('effective_from')->first());
+
+        return [
+            'statutoryStatus'   => $status,
+            'statutoryHistory'  => $history,
+            'statutoryUpcoming' => $upcoming,
+        ];
+    }
+
+    /**
+     * POST /employees/{empId}/statutory/applicability
+     * Remove / restore PF, EPS or ESI from a given month (back-dating allowed).
+     */
+    public function updateStatutoryApplicability(Request $req, $empId)
+    {
+        $cid = (int) session('active_company_id', 0);
+        $emp = Employee::where('emp_id', $empId)
+            ->when($cid, fn($q) => $q->where('company_id', $cid))
+            ->firstOrFail();
+
+        $data = $req->validate([
+            'scheme'         => 'required|in:pf,eps,esi',
+            'action'         => 'required|in:removed,restored',
+            'effective_from' => 'required|date_format:Y-m',
+            'reason'         => 'required_if:action,removed|nullable|string|max:255',
+        ], [
+            'reason.required_if' => 'Please enter a reason for removing.',
+        ]);
+
+        $svc   = new \App\Services\StatutoryApplicability();
+        $label = \App\Models\EmployeeStatutoryChange::SCHEME_LABELS[$data['scheme']];
+
+        // No-op guard: already in the requested state for that month.
+        $wantApplicable = $data['action'] === 'restored';
+        if ($svc->ownState($emp, $data['scheme'], $data['effective_from']) === $wantApplicable) {
+            return back()->with('error', "{$label} is already " . ($wantApplicable ? 'applicable' : 'removed')
+                . ' for ' . \Carbon\Carbon::createFromFormat('Y-m', $data['effective_from'])->format('M-Y') . '.');
+        }
+
+        $svc->change($emp, $data['scheme'], $data['action'], $data['effective_from'], $data['reason'] ?? null, auth()->id());
+
+        $from = \Carbon\Carbon::createFromFormat('Y-m', $data['effective_from'])->format('M-Y');
+        $msg  = "{$label} " . ($wantApplicable ? 'restored' : 'removed') . " from {$from}.";
+        if ($data['scheme'] === 'pf' && !$wantApplicable) {
+            $msg .= ' EPS and VPF also stop.';
+        }
+        if ($data['scheme'] === 'eps' && $wantApplicable && !$svc->isApplicable($emp, 'pf', $data['effective_from'])) {
+            $msg .= ' Note: PF itself is removed for that month, so EPS stays off until PF is restored.';
+        }
+
+        $runs = $svc->affectedRuns($emp, $data['effective_from']);
+        if ($runs->isNotEmpty()) {
+            $list = $runs->map(fn($r) => sprintf('%02d/%04d (%s)', $r->period_month, $r->period_year, $r->status))->implode(', ');
+            $msg .= " Salary already generated for: {$list}. Recompute those runs (payroll:recompute) to apply.";
+        }
+
+        return redirect()->route('employees.statutory', $emp->emp_id)->with('success', $msg);
     }
 
     public function create()
@@ -364,6 +444,16 @@ class EmployeeController extends StubController
         $data['lwf_state']     = $data['lwf_state'] ?? 'RJ';
         $data['on_probation']  = $req->boolean('on_probation');
         $data['same_as_mailing'] = $req->boolean('same_as_mailing');
+
+        // PF / ESI default from the salary group (Masters > Salary Groups).
+        // EPS follows PF. Change later on the employee's Statutory tab.
+        if (!empty($data['salary_group_id'])
+            && \Illuminate\Support\Facades\Schema::hasColumn('employees', 'pf_applicable_flag')
+            && ($group = SalaryGroup::find($data['salary_group_id']))) {
+            $data['pf_applicable_flag']  = (bool) $group->pf_applicable;
+            $data['fpf_applicable_flag'] = (bool) $group->pf_applicable;
+            $data['esi_applicable_flag'] = (bool) $group->esi_applicable;
+        }
 
         // Auto-derive full_name if blank
         if (empty($data['full_name'])) {
@@ -493,6 +583,21 @@ class EmployeeController extends StubController
             $data['full_name'] = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? ''));
         }
 
+        // Salary group changed → hint if its PF/ESI defaults differ from this
+        // employee's current setting (never auto-change: that would silently
+        // remove / add PF or ESI).
+        $groupHint = null;
+        if (!empty($data['salary_group_id']) && (int) $data['salary_group_id'] !== (int) $emp->salary_group_id
+            && ($group = SalaryGroup::find($data['salary_group_id']))) {
+            $diff = [];
+            if ((bool) $group->pf_applicable  !== (bool) ($emp->pf_applicable_flag  ?? true)) $diff[] = 'PF';
+            if ((bool) $group->esi_applicable !== (bool) ($emp->esi_applicable_flag ?? true)) $diff[] = 'ESI';
+            if ($diff) {
+                $groupHint = 'New salary group has different ' . implode('/', $diff)
+                    . ' setting. Not changed automatically. Use the Statutory tab if needed.';
+            }
+        }
+
         try {
             $emp->update($data);
 
@@ -513,7 +618,8 @@ class EmployeeController extends StubController
         }
 
         return redirect()->route('employees.show', $emp->emp_id)
-            ->with('status', 'Employee updated successfully.');
+            ->with('status', 'Employee updated successfully.')
+            ->when($groupHint, fn($r) => $r->with('success', 'Employee updated. ' . $groupHint));
     }
 
     /** Store an uploaded photo on the `public` disk and return its relative path. */
