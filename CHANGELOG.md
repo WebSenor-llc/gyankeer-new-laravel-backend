@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-11-13 — Remove / restore PF, EPS (FPF) & ESI per employee
+
+Employee > Statutory tab now has a PF / EPS / ESI applicability section: remove or restore a scheme from a chosen salary month, with reason, history and who changed it.
+
+- New table `employee_statutory_changes` (effective-dated remove/restore log) + `EmployeeStatutoryChange` model.
+- New `App\Services\StatutoryApplicability`: per-period applicability; falls back to `employees.*_applicable_flag` when no history; keeps those flags in sync with the current month.
+- Payroll: months before the chosen month are unaffected. PF removed ⇒ EPS and VPF also stop.
+- EPS-only removal: EPS 0, full 12% employer share to EPF (`PFCalculator::compute(..., $epsApplicable)`). The previously ignored FPF flag now takes effect.
+- PF ECR and ESI return use the same per-period rule.
+- Manage Salary > Config PF/FPF/ESI checkboxes now log to the same history (from the current month).
+- New employees take PF/ESI defaults from their salary group. Changing the group on an existing employee only shows a hint.
+- Back-dated changes list the salary runs already generated for those months; recompute with `payroll:recompute`.
+
 ## 2026-10-20 — EPF/EPS/EDLI wage ceiling ₹15,000 → ₹25,000 (EPFO 2026)
 
 Period-aware ceiling via `statutory_slabs` with `effective_from` / `effective_to` columns. Cutover **01-Oct-2026**: Apr–Sep 2026 runs stay at ₹15k; Oct 2026 onward at ₹25k.
