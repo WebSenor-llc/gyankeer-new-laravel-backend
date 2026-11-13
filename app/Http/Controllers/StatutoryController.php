@@ -177,17 +177,20 @@ class StatutoryController extends Controller
         // on the next "Generate ECR" click without having to re-run payroll.
         $pfCalc = app(\App\Services\PFCalculator::class);
 
-        // Per-employee PF toggle (Manage Salary > Config). Same guard the
-        // engine uses (PayrollEngine::computeForEmployee) — non-members must
-        // stay off the ECR even though they now pass the payslip query.
-        $hasPfFlag  = \Illuminate\Support\Facades\Schema::hasColumn('employees', 'pf_applicable_flag');
+        // Per-employee PF / EPS applicability for THIS period (effective-dated,
+        // Employee > Statutory tab; falls back to Manage Salary > Config flags).
+        // Same rule the engine uses — non-members must stay off the ECR.
+        $applicability = new \App\Services\StatutoryApplicability();
+        $applicability->preload($payslips->pluck('emp_id'));
+        $ecrPeriod   = sprintf('%04d-%02d', $year, $month);
         $daysInMonth = (int) \Carbon\Carbon::createFromDate($year, $month, 1)->daysInMonth;
 
         $inserted = 0;
         foreach ($payslips as $p) {
             $emp = $p->emp;
             if (!$emp) continue;
-            if ($hasPfFlag && !(($emp->pf_applicable_flag ?? true) == true)) continue;
+            if (!$applicability->isApplicable($emp, 'pf', $ecrPeriod)) continue;
+            $epsApplicable = $applicability->isApplicable($emp, 'eps', $ecrPeriod);
 
             // Fresh PF computation on the payslip's wage components
             $pf = $pfCalc->compute([
@@ -196,7 +199,7 @@ class StatutoryController extends Controller
                 'conv'    => (float) ($p->conveyance ?? 0),
                 'medical' => (float) ($p->medical    ?? 0),
                 'spl'     => (float) ($p->spl_allow  ?? 0),
-            ]);
+            ], epsApplicable: $epsApplicable);
 
             // NCP days = LOP days (Non-Contributory Period for EPFO reporting).
             // Float preserved — half-day LOP (e.g. 1.5) stays as 1.5, not 2.
@@ -218,7 +221,7 @@ class StatutoryController extends Controller
                     'member_name'      => $emp->full_name ?? '',
                     'gross_wage'       => (float) $p->gross_earnings,
                     'epf_wage_capped'  => $pf['wage'],
-                    'eps_wage_capped'  => $pf['wage'],
+                    'eps_wage_capped'  => $epsApplicable ? $pf['wage'] : 0,
                     'edli_wage_capped' => $pf['wage'],
                     // EPFO Member-12% column = mandatory EPF EE share + VPF
                     // (VPF flows into the same EPF member account).
@@ -322,15 +325,20 @@ class StatutoryController extends Controller
             ->when($groupEmpIds !== null, fn($q) => $q->whereIn('emp_id', $groupEmpIds))
             ->forceDelete();
 
+        $applicability = new \App\Services\StatutoryApplicability();
+        $applicability->preload($payslips->pluck('emp_id'));
+        $esiPeriod = sprintf('%04d-%02d', $year, $month);
+
         $count = 0;
         foreach ($payslips as $p) {
             if (!$p->emp) continue;
 
             $esiEe = (float) $p->esi_emp;
             $days  = (float) ($p->payable_days ?? 0);
-            // ESI-covered = has an IP number and the per-employee ESI toggle is on.
+            // ESI-covered = has an IP number and ESI applies for this period
+            // (effective-dated, Employee > Statutory tab).
             $covered = trim((string) ($p->emp->esi_ip_no ?? '')) !== ''
-                       && ($p->emp->esi_applicable_flag ?? true);
+                       && $applicability->isApplicable($p->emp, 'esi', $esiPeriod);
 
             // Keep contributing employees, plus covered employees with zero
             // payable days (full-month absent / LOP). Skip everyone else with

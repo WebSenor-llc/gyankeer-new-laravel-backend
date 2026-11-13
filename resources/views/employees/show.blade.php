@@ -134,6 +134,143 @@
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">VPF Amount</div><div>&#8377;{{ number_format($emp->vpf_amount ?? 0, 0) }}</div></div>
                         <div><div class="text-[11px] text-slate-500 uppercase mb-1">Passport No</div><div>{{ $emp->passport_no ?? '—' }}</div></div>
                     </div>
+
+                    {{-- PF / EPS / ESI applicability (effective-dated remove / restore) --}}
+                    @php
+                        $schemeLabels = \App\Models\EmployeeStatutoryChange::SCHEME_LABELS;
+                        $statutoryStatus   = $statutoryStatus   ?? [];
+                        $statutoryHistory  = $statutoryHistory  ?? collect();
+                        $statutoryUpcoming = $statutoryUpcoming ?? collect();
+                    @endphp
+                    <div class="mt-6 border-t border-[var(--line)] pt-5">
+                        <h3 class="text-sm font-semibold mb-1">PF / EPS / ESI Applicability</h3>
+                        <p class="text-xs text-slate-500 mb-3">Remove or restore a scheme from a salary month. Months before the chosen month are not affected. Removing PF also stops EPS and VPF.</p>
+
+                        @if($errors->any())
+                            <div class="mb-3 p-3 bg-rose-50 border border-rose-200 text-rose-800 rounded text-sm">
+                                @foreach($errors->all() as $err)<div>{{ $err }}</div>@endforeach
+                            </div>
+                        @endif
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                            @foreach($schemeLabels as $scheme => $label)
+                                @php
+                                    $st       = $statutoryStatus[$scheme] ?? ['applicable' => true, 'since' => null];
+                                    $pfOff    = $scheme === 'eps' && !($statutoryStatus['pf']['applicable'] ?? true);
+                                    $upcoming = $statutoryUpcoming->get($scheme);
+                                @endphp
+                                <div class="border border-[var(--line)] rounded-md p-3 text-sm">
+                                    <div class="flex items-center justify-between">
+                                        <span class="font-semibold">{{ $label }}</span>
+                                        @if($st['applicable'])
+                                            <span class="px-2 py-0.5 rounded text-xs bg-emerald-50 text-emerald-700 border border-emerald-200">Applicable</span>
+                                        @else
+                                            <span class="px-2 py-0.5 rounded text-xs bg-rose-50 text-rose-700 border border-rose-200">Removed</span>
+                                        @endif
+                                    </div>
+                                    <div class="text-xs text-slate-500 mt-1">
+                                        @if($pfOff)
+                                            Off because PF is removed
+                                        @elseif($st['since'] && $st['since']->year > 2000)
+                                            {{ $st['applicable'] ? 'Restored' : 'Removed' }} from {{ $st['since']->format('M-Y') }}
+                                        @else
+                                            &nbsp;
+                                        @endif
+                                    </div>
+                                    @if($upcoming)
+                                        <div class="text-xs text-amber-700 mt-1">Scheduled: {{ $upcoming->action === 'removed' ? 'remove' : 'restore' }} from {{ $upcoming->effective_from->format('M-Y') }}</div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+
+                        <form method="POST" action="{{ route('employees.statutory.applicability', $emp->emp_id) }}"
+                              class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end bg-slate-50 border border-[var(--line)] rounded-md p-3 text-sm">
+                            @csrf
+                            <label class="block">
+                                <span class="text-[11px] text-slate-500 uppercase">Scheme</span>
+                                <select name="scheme" id="stat-scheme" class="w-full border border-[var(--line)] rounded p-2 text-sm bg-white" required>
+                                    @foreach($schemeLabels as $scheme => $label)
+                                        <option value="{{ $scheme }}" @selected(old('scheme') === $scheme)>{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                            </label>
+                            <label class="block">
+                                <span class="text-[11px] text-slate-500 uppercase">Action</span>
+                                <select name="action" id="stat-action" class="w-full border border-[var(--line)] rounded p-2 text-sm bg-white" required>
+                                    <option value="removed"  @selected(old('action', 'removed') === 'removed')>Remove</option>
+                                    <option value="restored" @selected(old('action') === 'restored')>Restore</option>
+                                </select>
+                            </label>
+                            <label class="block">
+                                <span class="text-[11px] text-slate-500 uppercase">From month</span>
+                                <input type="month" name="effective_from" value="{{ old('effective_from', now()->format('Y-m')) }}"
+                                       class="w-full border border-[var(--line)] rounded p-2 text-sm bg-white" required>
+                            </label>
+                            <label class="block md:col-span-1">
+                                <span class="text-[11px] text-slate-500 uppercase">Reason <span id="stat-reason-req" class="text-rose-600">*</span></span>
+                                <input type="text" name="reason" maxlength="255" value="{{ old('reason') }}"
+                                       placeholder="e.g. Form 11 non-member"
+                                       class="w-full border border-[var(--line)] rounded p-2 text-sm bg-white">
+                            </label>
+                            <button type="submit" class="tb-btn primary" style="background:var(--brand);color:#fff">Save</button>
+                            <div id="stat-esi-note" class="md:col-span-5 text-xs text-amber-700 hidden">
+                                Note: ESI is normally deducted till the end of the contribution period (Apr–Sep / Oct–Mar), even if wages go above ₹21,000 mid-period.
+                            </div>
+                            <div class="md:col-span-5 text-xs text-slate-500">
+                                Back-dated change? Salary already generated for that month must be recomputed (<code>payroll:recompute</code>).
+                            </div>
+                        </form>
+
+                        <h4 class="text-xs font-semibold uppercase text-slate-500 mt-5 mb-2">History</h4>
+                        @if($statutoryHistory->isEmpty())
+                            <div class="text-sm text-slate-500">No changes recorded.</div>
+                        @else
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm">
+                                    <thead>
+                                        <tr class="text-left text-[11px] uppercase text-slate-500 border-b border-[var(--line)]">
+                                            <th class="py-2 pr-3">Changed on</th>
+                                            <th class="py-2 pr-3">Scheme</th>
+                                            <th class="py-2 pr-3">Action</th>
+                                            <th class="py-2 pr-3">From month</th>
+                                            <th class="py-2 pr-3">Reason</th>
+                                            <th class="py-2 pr-3">Changed by</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($statutoryHistory as $h)
+                                            <tr class="border-b border-[var(--line)]">
+                                                <td class="py-2 pr-3">{{ $h->created_at?->format('d-M-Y H:i') }}</td>
+                                                <td class="py-2 pr-3">{{ $schemeLabels[$h->scheme] ?? strtoupper($h->scheme) }}</td>
+                                                <td class="py-2 pr-3">
+                                                    <span class="{{ $h->action === 'removed' ? 'text-rose-700' : 'text-emerald-700' }}">{{ ucfirst($h->action) }}</span>
+                                                </td>
+                                                <td class="py-2 pr-3">{{ $h->effective_from->year > 2000 ? $h->effective_from->format('M-Y') : 'Earlier' }}</td>
+                                                <td class="py-2 pr-3">{{ $h->reason ?? '—' }}</td>
+                                                <td class="py-2 pr-3">{{ $h->changedBy->username ?? $h->changedBy->login_email ?? ($h->changed_by ? '#'.$h->changed_by : 'System') }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                    <script>
+                        (function () {
+                            var scheme = document.getElementById('stat-scheme');
+                            var action = document.getElementById('stat-action');
+                            var note   = document.getElementById('stat-esi-note');
+                            var req    = document.getElementById('stat-reason-req');
+                            function sync() {
+                                note.classList.toggle('hidden', !(scheme.value === 'esi' && action.value === 'removed'));
+                                req.classList.toggle('hidden', action.value !== 'removed');
+                            }
+                            scheme.addEventListener('change', sync);
+                            action.addEventListener('change', sync);
+                            sync();
+                        })();
+                    </script>
                     @break
 
                 @case('bank')
