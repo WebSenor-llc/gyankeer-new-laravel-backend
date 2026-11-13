@@ -29,6 +29,19 @@ class PayrollEngine
         protected BonusCalculator    $bonus,
     ) {}
 
+    /** Effective-dated PF/EPS/ESI applicability; fresh per run (engine is a singleton). */
+    protected ?StatutoryApplicability $applicability = null;
+    protected ?int $applicabilityRunId = null;
+
+    protected function applicability(SalaryRun $run): StatutoryApplicability
+    {
+        if (!$this->applicability || $this->applicabilityRunId !== (int) $run->run_id) {
+            $this->applicability = new StatutoryApplicability();
+            $this->applicabilityRunId = (int) $run->run_id;
+        }
+        return $this->applicability;
+    }
+
     /**
      * Run payroll for a company / period and persist Payslip rows.
      *
@@ -62,6 +75,13 @@ class PayrollEngine
                 'esi_emp' => 0, 'esi_er' => 0, 'pt' => 0, 'lwf_emp' => 0, 'lwf_er' => 0,
                 'tds' => 0, 'bonus' => 0, 'gratuity' => 0,
             ];
+
+            $this->applicability($run)->preload(
+                Employee::where('company_id', $companyId)
+                    ->where('active_flag', true)
+                    ->where('employment_status', 'Active')
+                    ->pluck('emp_id')
+            );
 
             foreach ($employees as $emp) {
                 $payslip = $this->computeForEmployee($emp, $run);
@@ -375,14 +395,15 @@ class PayrollEngine
             'spl'     => (float) $spl,
             'gross'   => $gross,
         ];
-        // ── Per-employee statutory toggles (Manage Salary > Config flags) ──
-        // Default behavior when flags are not set / column missing: applicable.
-        // When HR explicitly unchecks PF/ESI/LWF on /payroll/manage-salary/{id}/config,
-        // the corresponding deduction is set to ₹0 here.
-        $pfApplicable  = !\Illuminate\Support\Facades\Schema::hasColumn('employees', 'pf_applicable_flag')
-                         || ($e->pf_applicable_flag ?? true) == true;
-        $esiApplicable = !\Illuminate\Support\Facades\Schema::hasColumn('employees', 'esi_applicable_flag')
-                         || ($e->esi_applicable_flag ?? true) == true;
+        // ── Per-employee statutory toggles ──
+        // PF / EPS / ESI: effective-dated via employee_statutory_changes (Employee >
+        // Statutory tab), falling back to the Manage Salary > Config flags when no
+        // history exists. Default: applicable. PF off ⇒ EPS + VPF off too.
+        $period        = sprintf('%04d-%02d', (int) $run->period_year, (int) $run->period_month);
+        $applicability = $this->applicability($run);
+        $pfApplicable  = $applicability->isApplicable($e, 'pf',  $period);
+        $epsApplicable = $applicability->isApplicable($e, 'eps', $period);
+        $esiApplicable = $applicability->isApplicable($e, 'esi', $period);
         $lwfApplicable = !\Illuminate\Support\Facades\Schema::hasColumn('employees', 'lwf_apply_flag')
                          || ($e->lwf_apply_flag ?? true) == true;
 
@@ -390,7 +411,6 @@ class PayrollEngine
         // the cap ONLY for mid-month joiners/exits — NOT for LOP. Per EPFO
         // practice, LOP reduces earned EPF wage but the ceiling stays at full
         // monthly value; NCP days are reported separately in the ECR.
-        $period = sprintf('%04d-%02d', (int) $run->period_year, (int) $run->period_month);
         $iwFlag = \Illuminate\Support\Facades\Schema::hasColumn('employees', 'iw_flag')
                   && ($e->iw_flag ?? false) == true;
         // Mid-month DOJ check: joined inside this period window.
@@ -418,7 +438,8 @@ class PayrollEngine
                 $period,
                 $iwFlag,
                 $pfWorkedDays,
-                $pfMonthDays
+                $pfMonthDays,
+                $epsApplicable
             )
             : ['wage' => 0, 'employee' => 0, 'employer' => 0, 'eps' => 0, 'edli' => 0, 'admin' => 0, 'cap_snapshot' => 0];
         $esi = $esiApplicable
@@ -468,6 +489,10 @@ class PayrollEngine
                 // Use whatever HR entered, including 0.
                 $tds = (float) ($manual->tds_deduction ?? 0);
             }
+        }
+        // VPF rides on the PF account — no PF membership, no VPF.
+        if (!$pfApplicable) {
+            $vpfAmount = 0.0;
         }
 
         // === Aggregate ===
