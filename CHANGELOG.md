@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-11-13 — Payslip leave balance shown as of slip month
+
+- Payslip / bulk print Leave Balance (CL, PL) now = opening + accrued − `leave_ledger` consumed from FY start through slip month. Previously showed current closing balance, so old slips reflected later leaves (e.g. May slip showed PL 42 after June leave instead of 50).
+- PL now shows 1 decimal like CL.
+
 ## 2026-11-13 — Remove / restore PF, EPS (FPF) & ESI per employee
 
 Employee > Statutory tab now has a PF / EPS / ESI applicability section: remove or restore a scheme from a chosen salary month, with reason, history and who changed it.
