@@ -85,8 +85,7 @@ class PFCalculator
         ?string $period = null,
         bool $iwFlag = false,
         int $workedDays = 0,
-        int $monthDays = 0,
-        bool $epsApplicable = true
+        int $monthDays = 0
     ): array {
         $wage = $this->pfWage($basicPlusDAOrComponents, $period, $iwFlag, $workedDays, $monthDays);
         $capSnapshot = $iwFlag
@@ -96,11 +95,7 @@ class PFCalculator
         // EPFO ECR submissions are in WHOLE RUPEES. See PR notes on rounding
         // invariant EE == EPS + ER (EPFO rejects otherwise).
         $employee = (int) round($wage * config('hreasy.pf.employee_rate') / 100);
-        // EPS (FPF) removed for the member → no pension share; the full 12%
-        // employer contribution goes to EPF A/c 1 (ER = EE).
-        $eps      = $epsApplicable
-            ? (int) round($wage * config('hreasy.pf.eps_rate') / 100)
-            : 0;
+        $eps      = (int) round($wage * config('hreasy.pf.eps_rate')      / 100);
         $employer = $employee - $eps;
 
         return [
@@ -117,15 +112,15 @@ class PFCalculator
     /**
      * Generate ECR row for an employee for a period
      */
-    public function ecrRow(string $uan, string $name, float $grossWage, float $basicPlusDA, int $ncpDays = 0, ?string $period = null, bool $iwFlag = false, bool $epsApplicable = true): array
+    public function ecrRow(string $uan, string $name, float $grossWage, float $basicPlusDA, int $ncpDays = 0, ?string $period = null, bool $iwFlag = false): array
     {
-        $pf = $this->compute($basicPlusDA, $period, $iwFlag, 0, 0, $epsApplicable);
+        $pf = $this->compute($basicPlusDA, $period, $iwFlag);
         return [
             'uan'              => $uan,
             'member_name'      => $name,
             'gross_wage'       => $grossWage,
             'epf_wage_capped'  => $pf['wage'],
-            'eps_wage_capped'  => $epsApplicable ? $pf['wage'] : 0,
+            'eps_wage_capped'  => $pf['wage'],
             'edli_wage_capped' => $pf['wage'],
             'ee_share_12pct'   => $pf['employee'],
             'eps_8_33'         => $pf['eps'],

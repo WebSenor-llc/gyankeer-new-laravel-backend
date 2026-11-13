@@ -112,10 +112,4 @@ class Employee extends Model
     {
         return $this->belongsTo(SalaryGroup::class, 'salary_group_id');
     }
-
-    /** PF / EPS / ESI remove-restore history (effective-dated). */
-    public function statutoryChanges(): HasMany
-    {
-        return $this->hasMany(EmployeeStatutoryChange::class, 'emp_id', 'emp_id');
-    }
 }

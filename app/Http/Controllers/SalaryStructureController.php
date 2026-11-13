@@ -307,23 +307,6 @@ class SalaryStructureController extends Controller
                 'current_basic','current_da','current_hra','current_conv',
                 'current_med','current_spl','current_gross',
             ])->all();
-
-            // PF / EPS / ESI toggles go through the effective-dated history (from
-            // the current month) so the Employee > Statutory tab and payroll agree.
-            if (\Illuminate\Support\Facades\Schema::hasTable('employee_statutory_changes')) {
-                $svc    = new \App\Services\StatutoryApplicability();
-                $period = now()->format('Y-m');
-                foreach (\App\Services\StatutoryApplicability::FLAG_COLUMNS as $scheme => $col) {
-                    if (!array_key_exists($col, $flagPayload)) continue;
-                    $want = (bool) $flagPayload[$col];
-                    unset($flagPayload[$col]);
-                    if ($svc->ownState($emp, $scheme, $period) !== $want) {
-                        $svc->change($emp, $scheme, $want ? 'restored' : 'removed', $period,
-                            'Changed via Manage Salary config', auth()->id());
-                    }
-                }
-            }
-
             $emp->update($flagPayload);
 
             if (!$salaryChanged) return;
