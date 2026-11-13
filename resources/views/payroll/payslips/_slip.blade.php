@@ -37,12 +37,25 @@
 
     // Leave balances — resolved against the payslip's FY (Apr-Dec → next year,
     // Jan-Mar → same year) so the carry-forward shows correctly after import.
+    // Balance is AS OF the slip month (opening + accrued − leave_ledger consumed
+    // from FY start through slip month), not the current closing_balance —
+    // otherwise an old slip shows leaves taken in later months.
     try {
-        $slipFy = $payslip->period_month >= 4 ? $payslip->period_year + 1 : $payslip->period_year;
-        $cl_bal = optional(\App\Models\LeaveBalance::where('emp_id', $emp->emp_id)
-                    ->where('leave_code', 'CL')->where('fy', $slipFy)->first())->closing_balance ?? null;
-        $pl_bal = optional(\App\Models\LeaveBalance::where('emp_id', $emp->emp_id)
-                    ->where('leave_code', 'PL')->where('fy', $slipFy)->first())->closing_balance ?? null;
+        $slipFy  = $payslip->period_month >= 4 ? $payslip->period_year + 1 : $payslip->period_year;
+        $fromKey = ($slipFy - 1) * 12 + 4;
+        $toKey   = $payslip->period_year * 12 + $payslip->period_month;
+        $balAsOf = function (string $code) use ($emp, $slipFy, $fromKey, $toKey) {
+            $bal = \App\Models\LeaveBalance::where('emp_id', $emp->emp_id)
+                ->where('leave_code', $code)->where('fy', $slipFy)->first();
+            if (!$bal) return null;
+            $used = (float) \DB::table('leave_ledger')
+                ->where('emp_id', $emp->emp_id)->where('leave_code', $code)
+                ->whereRaw('(period_year * 12 + period_month) BETWEEN ? AND ?', [$fromKey, $toKey])
+                ->sum('days_consumed');
+            return (float) $bal->opening_balance + (float) $bal->accrued_ytd - $used;
+        };
+        $cl_bal = $balAsOf('CL');
+        $pl_bal = $balAsOf('PL');
     } catch (\Throwable $e) { $cl_bal = null; $pl_bal = null; }
 
     // Format helper: 0.00 numeric column on the slip
@@ -125,7 +138,7 @@
                 <div style="text-align:center;font-weight:bold;font-size:13px;margin-bottom:6px">Leave Balance</div>
                 <table style="width:100%;font-size:11px">
                     <tr><td style="padding:2px 0;font-weight:bold;width:35px">CL</td><td>:</td><td style="text-align:right">{{ $cl_bal !== null ? number_format($cl_bal, 1) : '—' }}</td></tr>
-                    <tr><td style="padding:2px 0;font-weight:bold">PL</td><td>:</td><td style="text-align:right">{{ $pl_bal !== null ? number_format($pl_bal, 0) : '—' }}</td></tr>
+                    <tr><td style="padding:2px 0;font-weight:bold">PL</td><td>:</td><td style="text-align:right">{{ $pl_bal !== null ? number_format($pl_bal, 1) : '—' }}</td></tr>
                 </table>
             </td>
         </tr>
