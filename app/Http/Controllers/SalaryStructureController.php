@@ -144,13 +144,44 @@ class SalaryStructureController extends Controller
         $salaryGroups = SalaryGroup::when($cid, fn($x) => $x->where('company_id', $cid))->orderBy('salary_group_name')->get();
         $banks        = Bank::orderBy('bank_name')->get();
 
+        // Legacy (Excel-imported) employees: current_gross may exceed the sum of
+        // the visible component fields (unmapped House Rent etc.). The engine
+        // backfills that gap into Special Allowance, but save() recomputes gross
+        // from the form fields only — so the gap was silently lost on save.
+        // Surface it in "Other Allow" so it is visible and preserved.
+        $legacyGap = 0.0;
+        if (!SalaryStructure::where('emp_id', $emp->emp_id)->exists()) {
+            // Mirror what the form will submit: with auto_calc on, page JS and
+            // save() derive DA/HRA/Conv/Med/Edu from Basic × pct — NOT the stored
+            // values (e.g. stored education_allow 0 but 5% → ₹472 on screen).
+            $b = (float) $emp->current_basic;
+            $pct = fn($col, $stored) => ($emp->auto_calc_flag ?? false)
+                ? round($b * (float) ($emp->{$col} ?? 0) / 100, 2)
+                : (float) ($stored ?? 0);
+            $visible = $b
+                + $pct('da_pct',        $emp->current_da)
+                + $pct('hra_pct',       $emp->current_hra)
+                + $pct('conv_pct',      $emp->current_conv)
+                + $pct('medical_pct',   $emp->current_med)
+                + $pct('education_pct', $emp->education_allow);
+            foreach (['special_house_rent','site_allowance','sp_conv_petrol','other_allowance','deputation_allowance',
+                      'food_allowance','city_allowance','voucher_cash_allow','kra_amount','hard_duty_allow'] as $c) {
+                $visible += (float) ($emp->{$c} ?? 0);
+            }
+            $gap = round((float) $emp->current_gross - $visible, 2);
+            if ($gap > 0.5) {
+                $legacyGap = $gap;
+                $emp->other_allowance = round((float) ($emp->other_allowance ?? 0) + $gap, 2);
+            }
+        }
+
         // List of generated payslip periods for this employee (for the download panel)
         $payslipPeriods = \App\Models\Payslip::where('emp_id', $emp->emp_id)
             ->orderByDesc('period_year')
             ->orderByDesc('period_month')
             ->get(['payslip_id','period_year','period_month','gross_earnings','net_pay','disbursement_status']);
 
-        return view('payroll.manage-salary.config', compact('emp','salaryGroups','banks','payslipPeriods'));
+        return view('payroll.manage-salary.config', compact('emp','salaryGroups','banks','payslipPeriods','legacyGap'));
     }
 
     public function save($empId, Request $req)
@@ -164,6 +195,7 @@ class SalaryStructureController extends Controller
             'overtime_applicable_flag' => 'nullable|boolean',
             'overtime_rate'          => 'nullable|numeric|min:0|max:5',
             'lwf_apply_flag'         => 'nullable|boolean',
+            'vpf_amount'             => 'nullable|numeric|min:0',
             'ltc_entitled_flag'      => 'nullable|boolean',
             'auto_calc_flag'         => 'nullable|boolean',
 
@@ -273,6 +305,12 @@ class SalaryStructureController extends Controller
             }
         }
 
+        // VPF standing election (fixed ₹/month). Blank → 0. Engine ignores it
+        // when PF is unchecked (VPF needs EPF membership).
+        if (\Illuminate\Support\Facades\Schema::hasColumn('employees', 'vpf_amount')) {
+            $payload['vpf_amount'] = round((float) ($req->input('vpf_amount') ?: 0), 2);
+        }
+
         $effectiveFrom = Carbon::parse($req->input('effective_from') ?: today()->toDateString())->startOfDay();
         $today         = today()->startOfDay();
         $isFutureDated = $effectiveFrom->gt($today);
@@ -288,7 +326,12 @@ class SalaryStructureController extends Controller
         $oldDa    = (float) ($latest?->da    ?? $emp->current_da    ?? 0);
         $oldConv  = (float) ($latest?->conveyance ?? $emp->current_conv ?? 0);
         $oldMed   = (float) ($latest?->medical    ?? $emp->current_med  ?? 0);
-        $oldSpl   = (float) ($latest?->special_allowance ?? $emp->current_spl ?? 0);
+        // salary_structures has no education column → Education rides in
+        // special_allowance there (else structure-driven runs drop it).
+        $structSpl = $extras + $edu;
+        $oldSpl   = $latest
+            ? (float) $latest->special_allowance
+            : (float) ($emp->current_spl ?? 0) + (float) ($emp->education_allow ?? 0);
         $oldGross = $oldBasic + $oldHra + $oldDa + $oldConv + $oldMed + $oldSpl;
 
         $salaryChanged = abs($oldBasic - $basic) > 0.5
@@ -296,11 +339,11 @@ class SalaryStructureController extends Controller
             || abs($oldDa  - $da)  > 0.5
             || abs($oldConv - $conv) > 0.5
             || abs($oldMed  - $med)  > 0.5
-            || abs($oldSpl  - $extras) > 0.5;
+            || abs($oldSpl  - $structSpl) > 0.5;
 
         DB::transaction(function () use (
             $emp, $payload, $salaryChanged, $isFutureDated, $effectiveFrom,
-            $basic, $da, $hra, $conv, $med, $extras, $gross, $oldGross, $req
+            $basic, $da, $hra, $conv, $med, $extras, $structSpl, $gross, $oldGross, $req
         ) {
             // Non-salary fields (flags, IDs, bank) — always applied immediately.
             $flagPayload = collect($payload)->except([
@@ -331,7 +374,7 @@ class SalaryStructureController extends Controller
                 'da'                => $da,
                 'conveyance'        => $conv,
                 'medical'           => $med,
-                'special_allowance' => $extras,
+                'special_allowance' => $structSpl,
                 'gross_monthly'     => $gross,
                 'gross_annual'      => $gross * 12,
                 'ctc_monthly'       => $gross,

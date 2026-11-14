@@ -110,6 +110,18 @@ class PFCalculator
     }
 
     /**
+     * FPF/EPS opt-out (employees.fpf_applicable_flag = 0, e.g. age 58+ or
+     * non-EPS member): EPS = 0 and full employer 12% goes to EPF A/C 1.
+     * EE share unchanged. Keeps EPFO invariant EE == EPS + ER.
+     */
+    public function withoutEps(array $pf): array
+    {
+        $pf['eps']      = 0;
+        $pf['employer'] = $pf['employee'];
+        return $pf;
+    }
+
+    /**
      * Generate ECR row for an employee for a period
      */
     public function ecrRow(string $uan, string $name, float $grossWage, float $basicPlusDA, int $ncpDays = 0, ?string $period = null, bool $iwFlag = false): array
