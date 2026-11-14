@@ -151,8 +151,19 @@ class SalaryStructureController extends Controller
         // Surface it in "Other Allow" so it is visible and preserved.
         $legacyGap = 0.0;
         if (!SalaryStructure::where('emp_id', $emp->emp_id)->exists()) {
-            $visible = (float) $emp->current_basic + (float) $emp->current_da + (float) $emp->current_hra
-                + (float) $emp->current_conv + (float) $emp->current_med + (float) ($emp->education_allow ?? 0);
+            // Mirror what the form will submit: with auto_calc on, page JS and
+            // save() derive DA/HRA/Conv/Med/Edu from Basic × pct — NOT the stored
+            // values (e.g. stored education_allow 0 but 5% → ₹472 on screen).
+            $b = (float) $emp->current_basic;
+            $pct = fn($col, $stored) => ($emp->auto_calc_flag ?? false)
+                ? round($b * (float) ($emp->{$col} ?? 0) / 100, 2)
+                : (float) ($stored ?? 0);
+            $visible = $b
+                + $pct('da_pct',        $emp->current_da)
+                + $pct('hra_pct',       $emp->current_hra)
+                + $pct('conv_pct',      $emp->current_conv)
+                + $pct('medical_pct',   $emp->current_med)
+                + $pct('education_pct', $emp->education_allow);
             foreach (['special_house_rent','site_allowance','sp_conv_petrol','other_allowance','deputation_allowance',
                       'food_allowance','city_allowance','voucher_cash_allow','kra_amount','hard_duty_allow'] as $c) {
                 $visible += (float) ($emp->{$c} ?? 0);
