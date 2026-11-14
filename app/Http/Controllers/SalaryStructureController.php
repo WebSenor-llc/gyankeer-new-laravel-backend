@@ -315,7 +315,12 @@ class SalaryStructureController extends Controller
         $oldDa    = (float) ($latest?->da    ?? $emp->current_da    ?? 0);
         $oldConv  = (float) ($latest?->conveyance ?? $emp->current_conv ?? 0);
         $oldMed   = (float) ($latest?->medical    ?? $emp->current_med  ?? 0);
-        $oldSpl   = (float) ($latest?->special_allowance ?? $emp->current_spl ?? 0);
+        // salary_structures has no education column → Education rides in
+        // special_allowance there (else structure-driven runs drop it).
+        $structSpl = $extras + $edu;
+        $oldSpl   = $latest
+            ? (float) $latest->special_allowance
+            : (float) ($emp->current_spl ?? 0) + (float) ($emp->education_allow ?? 0);
         $oldGross = $oldBasic + $oldHra + $oldDa + $oldConv + $oldMed + $oldSpl;
 
         $salaryChanged = abs($oldBasic - $basic) > 0.5
@@ -323,11 +328,11 @@ class SalaryStructureController extends Controller
             || abs($oldDa  - $da)  > 0.5
             || abs($oldConv - $conv) > 0.5
             || abs($oldMed  - $med)  > 0.5
-            || abs($oldSpl  - $extras) > 0.5;
+            || abs($oldSpl  - $structSpl) > 0.5;
 
         DB::transaction(function () use (
             $emp, $payload, $salaryChanged, $isFutureDated, $effectiveFrom,
-            $basic, $da, $hra, $conv, $med, $extras, $gross, $oldGross, $req
+            $basic, $da, $hra, $conv, $med, $extras, $structSpl, $gross, $oldGross, $req
         ) {
             // Non-salary fields (flags, IDs, bank) — always applied immediately.
             $flagPayload = collect($payload)->except([
@@ -358,7 +363,7 @@ class SalaryStructureController extends Controller
                 'da'                => $da,
                 'conveyance'        => $conv,
                 'medical'           => $med,
-                'special_allowance' => $extras,
+                'special_allowance' => $structSpl,
                 'gross_monthly'     => $gross,
                 'gross_annual'      => $gross * 12,
                 'ctc_monthly'       => $gross,
