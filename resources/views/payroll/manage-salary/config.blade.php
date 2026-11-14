@@ -280,6 +280,9 @@
                     <div>
                         <label class="block text-xs font-semibold text-slate-700 mb-1">{{ $label }} :</label>
                         <input type="number" step="0.01" min="0" name="{{ $name }}" value="{{ old($name, $val) }}" class="block w-full border border-[var(--line)] rounded p-2 text-sm earn-input">
+                        @if($name === 'other_allowance' && ($legacyGap ?? 0) > 0)
+                            <p class="text-[10px] text-amber-700 mt-1">Incl. ₹{{ number_format($legacyGap, 2) }} imported allowance not mapped to any field (kept so gross stays ₹{{ number_format($emp->current_gross, 2) }}).</p>
+                        @endif
                     </div>
                 @endforeach
             </div>

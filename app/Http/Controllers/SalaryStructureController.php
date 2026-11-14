@@ -144,13 +144,33 @@ class SalaryStructureController extends Controller
         $salaryGroups = SalaryGroup::when($cid, fn($x) => $x->where('company_id', $cid))->orderBy('salary_group_name')->get();
         $banks        = Bank::orderBy('bank_name')->get();
 
+        // Legacy (Excel-imported) employees: current_gross may exceed the sum of
+        // the visible component fields (unmapped House Rent etc.). The engine
+        // backfills that gap into Special Allowance, but save() recomputes gross
+        // from the form fields only — so the gap was silently lost on save.
+        // Surface it in "Other Allow" so it is visible and preserved.
+        $legacyGap = 0.0;
+        if (!SalaryStructure::where('emp_id', $emp->emp_id)->exists()) {
+            $visible = (float) $emp->current_basic + (float) $emp->current_da + (float) $emp->current_hra
+                + (float) $emp->current_conv + (float) $emp->current_med + (float) ($emp->education_allow ?? 0);
+            foreach (['special_house_rent','site_allowance','sp_conv_petrol','other_allowance','deputation_allowance',
+                      'food_allowance','city_allowance','voucher_cash_allow','kra_amount','hard_duty_allow'] as $c) {
+                $visible += (float) ($emp->{$c} ?? 0);
+            }
+            $gap = round((float) $emp->current_gross - $visible, 2);
+            if ($gap > 0.5) {
+                $legacyGap = $gap;
+                $emp->other_allowance = round((float) ($emp->other_allowance ?? 0) + $gap, 2);
+            }
+        }
+
         // List of generated payslip periods for this employee (for the download panel)
         $payslipPeriods = \App\Models\Payslip::where('emp_id', $emp->emp_id)
             ->orderByDesc('period_year')
             ->orderByDesc('period_month')
             ->get(['payslip_id','period_year','period_month','gross_earnings','net_pay','disbursement_status']);
 
-        return view('payroll.manage-salary.config', compact('emp','salaryGroups','banks','payslipPeriods'));
+        return view('payroll.manage-salary.config', compact('emp','salaryGroups','banks','payslipPeriods','legacyGap'));
     }
 
     public function save($empId, Request $req)
