@@ -421,6 +421,12 @@ class PayrollEngine
                 $pfMonthDays
             )
             : ['wage' => 0, 'employee' => 0, 'employer' => 0, 'eps' => 0, 'edli' => 0, 'admin' => 0, 'cap_snapshot' => 0];
+        // FPF unchecked → no EPS; employer 12% routed fully to EPF.
+        $fpfApplicable = !\Illuminate\Support\Facades\Schema::hasColumn('employees', 'fpf_applicable_flag')
+                         || ($e->fpf_applicable_flag ?? true) == true;
+        if ($pfApplicable && !$fpfApplicable) {
+            $pf = $this->pf->withoutEps($pf);
+        }
         $esi = $esiApplicable
             ? $this->esi->compute($components)
             : ['eligible' => false, 'wage' => 0, 'employee' => 0, 'employer' => 0];
@@ -470,8 +476,13 @@ class PayrollEngine
             }
         }
 
+        // VPF is an extra EPF contribution — impossible without PF membership.
+        if (!$pfApplicable) {
+            $vpfAmount = 0.0;
+        }
+
         // === Aggregate ===
-        $totalDed = $pf['employee'] + $esi['employee'] + $pt + $lwf['employee'] + $tds
+        $totalDed =$pf['employee'] + $esi['employee'] + $pt + $lwf['employee'] + $tds
                   + $vpfAmount
                   + $loanEmi + $advanceRecovery + $postDeduction;
         $netPay   = $gross - $totalDed;

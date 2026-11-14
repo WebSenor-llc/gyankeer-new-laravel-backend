@@ -181,6 +181,7 @@ class StatutoryController extends Controller
         // engine uses (PayrollEngine::computeForEmployee) — non-members must
         // stay off the ECR even though they now pass the payslip query.
         $hasPfFlag  = \Illuminate\Support\Facades\Schema::hasColumn('employees', 'pf_applicable_flag');
+        $hasFpfFlag = \Illuminate\Support\Facades\Schema::hasColumn('employees', 'fpf_applicable_flag');
         $daysInMonth = (int) \Carbon\Carbon::createFromDate($year, $month, 1)->daysInMonth;
 
         $inserted = 0;
@@ -204,7 +205,12 @@ class StatutoryController extends Controller
             // 0 ⇒ NCP = calendar days in the month. The payslip's lop_days is
             // measured against the 26-day contractor divisor, so it would say
             // 26 for May and get the ECR file rejected.
-            $ncpDays = $pf['wage'] <= 0 ? (float) $daysInMonth : (float) $p->lop_days;
+            $noEps = $hasFpfFlag && !(($emp->fpf_applicable_flag ?? true) == true);
+            if ($noEps) {
+                $pf = $pfCalc->withoutEps($pf);
+            }
+
+            $ncpDays = $pf['wage'] <= 0 ?(float) $daysInMonth : (float) $p->lop_days;
 
             \App\Models\PfEcrRecord::updateOrCreate(
                 [
@@ -218,7 +224,7 @@ class StatutoryController extends Controller
                     'member_name'      => $emp->full_name ?? '',
                     'gross_wage'       => (float) $p->gross_earnings,
                     'epf_wage_capped'  => $pf['wage'],
-                    'eps_wage_capped'  => $pf['wage'],
+                    'eps_wage_capped'  => $noEps ? 0 : $pf['wage'],
                     'edli_wage_capped' => $pf['wage'],
                     // EPFO Member-12% column = mandatory EPF EE share + VPF
                     // (VPF flows into the same EPF member account).

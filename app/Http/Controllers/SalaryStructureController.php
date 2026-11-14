@@ -164,6 +164,7 @@ class SalaryStructureController extends Controller
             'overtime_applicable_flag' => 'nullable|boolean',
             'overtime_rate'          => 'nullable|numeric|min:0|max:5',
             'lwf_apply_flag'         => 'nullable|boolean',
+            'vpf_amount'             => 'nullable|numeric|min:0',
             'ltc_entitled_flag'      => 'nullable|boolean',
             'auto_calc_flag'         => 'nullable|boolean',
 
@@ -271,6 +272,12 @@ class SalaryStructureController extends Controller
             } else {
                 $missingCols[] = $c;
             }
+        }
+
+        // VPF standing election (fixed ₹/month). Blank → 0. Engine ignores it
+        // when PF is unchecked (VPF needs EPF membership).
+        if (\Illuminate\Support\Facades\Schema::hasColumn('employees', 'vpf_amount')) {
+            $payload['vpf_amount'] = round((float) ($req->input('vpf_amount') ?: 0), 2);
         }
 
         $effectiveFrom = Carbon::parse($req->input('effective_from') ?: today()->toDateString())->startOfDay();

@@ -149,7 +149,7 @@
                         </div>
                         <div>
                             <label class="flex items-center gap-2 text-sm mb-1"><input type="checkbox" name="fpf_applicable_flag" value="1" @checked(old('fpf_applicable_flag', $emp->fpf_applicable_flag ?? true))> <span>FPF Applicable</span></label>
-                            <input type="number" step="0.01" min="0" name="vpf_amount" value="{{ old('vpf_amount') }}" placeholder="VPF (optional)" class="block w-full border border-[var(--line)] rounded p-2 text-sm">
+                            <input type="number" step="0.01" min="0" name="vpf_amount" value="{{ old('vpf_amount', (float) ($emp->vpf_amount ?? 0) > 0 ? $emp->vpf_amount : '') }}" placeholder="VPF (optional)" class="block w-full border border-[var(--line)] rounded p-2 text-sm">
                             <p class="text-[10px] text-slate-500 mt-1">VPF is also editable per-period in Salary Deductions form.</p>
                         </div>
                         <div>
